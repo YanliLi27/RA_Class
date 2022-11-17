@@ -44,7 +44,7 @@ class ESMIRA_generator:
         # --------------------------------------------------------main generator-------------------------------------------------------- #
         # input selection:
         # common_cs_dict  {'EAC_XXX_XXX':[LIST-'Names_label.mha:10to15'], ..., 'ATL_XXX_XXX':[LIST-'Names_label.mha:8to13']}
-        self.common_cs_dict = input_filter(self.common_cs_dict, target_site, target_dirc)
+        self.common_cs_dict = input_filter(self.common_cs_dict, target_category, target_site, target_dirc)
         print('Remained keys: ', self.common_cs_dict.keys())
         # common_cs_dict  {'EAC_Wrist_TRA':[LIST-'Names_label.mha:10to15'], 'ATL_Wrist_TRA':[LIST-'Names_label.mha:8to13']}
 
@@ -70,6 +70,8 @@ class ESMIRA_generator:
             atlas_train_dict, atlas_val_dict = split_definer(self.atlas_split, fold_order)
             # {'ATL_XXX_XXX':[4*LIST--subname+names.mha:10to15:0], 'ATL_XXX_XXX':[4*LIST--subname+names.mha:10to15:0], ...}
             # {'ATL_XXX_XXX':[LIST--subname+names.mha:10to15:0], 'ATL_XXX_XXX':[LIST--subname+names.mha:10to15:0], ...}
+
+            # TODO unfixed balancer: target_list[key] * target_repeat
             train_dict = balancer(target_train_dict, atlas_train_dict, self.target_category)
             val_dict = balancer(target_val_dict, atlas_val_dict, self.target_category)
             # {'site_dirc':[LIST(Target+Atlas): subdir\names.mha:cs:label ], ...}

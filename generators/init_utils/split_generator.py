@@ -43,8 +43,10 @@ def class_generator(common_dict:dict, target_category:list) ->dict:
                     filename = key + '\\' + filename + ':0'
                     atlas_split[key].append(filename)
             else:
-                raise ValueError('More than two classes required')
-    
+                raise ValueError('something wrong with key and category')
+    else:
+        raise ValueError('More than two classes required')
+    return target_split, atlas_split
     # target_split = {'EAC_XXX_XXX':[LIST--subname+names.mha:10to15:1], ...}
     # atlas_split = {'ATL_XXX_XXX':[LIST--subname+names.mha:10to15:0], ...}
 
@@ -57,7 +59,7 @@ def split_generator(target_split:dict) ->dict:
         kf = KFold(n_splits=5, shuffle=True)
         for train_index, val_index in kf.split(range(len(list_key))):
             # val_index -- the index of ids in list_key
-            indiv_split.append(list_key[val_index])  # [5* [LIST]]
+            indiv_split.append(np.array(list_key)[val_index])  # [5* [LIST]]
         target_split[key] = indiv_split
     return target_split  # {'EAC_XXX_XXX':[5*[LIST--subname+names.mha:10to15:1]], 'EAC_XXX_XXX':[5*[LIST--subname+names.mha:10to15:1]], ...}
 
@@ -81,8 +83,8 @@ def split_definer(split_list:dict, fold_order:int) ->Tuple[dict, dict]:
 def balancer(target_list:dict, atlas_list:dict, target_category:list) ->dict:
     # 从subdir:names变成subdir+names
     # balance the data in atlas and target split
-    keyname = target_list.keys()[0]
-    at_keyname = atlas_list.keys()[0]
+    keyname = list(target_list.keys())[0]
+    at_keyname = list(atlas_list.keys())[0]
     assert (len(target_list.keys())==len(atlas_list.keys()))  # site and dirc should be the same
     # keyname can be different for ATL/EACorCSA,
     # but the length in EAC_XXX_XXX, should be the same
@@ -93,6 +95,7 @@ def balancer(target_list:dict, atlas_list:dict, target_category:list) ->dict:
     target_repeat = capacity_max // length_target
     atlas_repeat = capacity_max // length_atlas
     for key in target_list.keys():
+        # TODO
         target_list[key] = target_list[key] * target_repeat
     for key in atlas_list.keys():
         atlas_list[key] = atlas_list[key] * atlas_repeat
