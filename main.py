@@ -28,12 +28,12 @@ def main_process(data_dir='', target_category=['EAC', 'ATL'],
 
         # Step. 4 Load the weights and predict
         model = pretrained(model=model, output_name=output_name)
-        val_dataloader = DataLoader(val_dataset, batch_size=32, shuffle=False, num_workers=4)
+        val_dataloader = DataLoader(val_dataset, batch_size=10, shuffle=False, num_workers=4)
         G,P = predict(model, val_dataloader)
         print(classification_report(G,P))
         print(roc_auc_score(G,P))
 
 
 if __name__ == '__main__':
-    main_process(data_dir='',  target_category=['EAC', 'CSA', 'ATL'], 
-                 target_site=['Wrist', 'MCP', 'Foot'], target_dirc=['TRA', 'COR'], phase='train')
+    main_process(data_dir='D:\\ESMIRA\\ESMIRA_common',  target_category=['EAC', 'ATL'], 
+                 target_site=['Wrist'], target_dirc=['TRA', 'COR'], phase='train')

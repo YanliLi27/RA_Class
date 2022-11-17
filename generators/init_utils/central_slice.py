@@ -58,6 +58,7 @@ def central_slice_generator(data_root:str, common_list:dict)->dict:
             for dirc in default_target_dirc:
                 subdir.append(f'{cate}_{site}_{dirc}')
     # subdir ['EAC_Wrist_TRA', ...]
+    print(subdir)
 
     # Step. 2 在子目录列表的对象中循环，计算结果，并添加到名称末尾，由此名称变为：子目录名/文件名_label.mha:central slice。
     for subname in subdir:  # subname 'EAC_Wrist_TRA'
@@ -66,7 +67,8 @@ def central_slice_generator(data_root:str, common_list:dict)->dict:
         filelist = os.listdir(dirpath)  # ['file_names']
         for file in tqdm(filelist):
             id = file.split('-')[2]
-            if id in common_list:
+            cate = id.split('_')[1]
+            if id in common_list[cate]:
                 central_slice_range = central_selector(os.path.join(dirpath, file))  # str ':10to15'
                 name_str = file + central_slice_range  # 'Names_1.mha:10to15'
                 sub_extended_list.append(name_str)  # 'Names_1.mha:10to15'

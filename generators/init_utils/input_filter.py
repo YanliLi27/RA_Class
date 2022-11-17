@@ -7,7 +7,7 @@ def input_filter(common_cs_dict:dict, target_site:list, target_dirc:list)->dict:
         for dirc in target_dirc:
             input_limit.append(f'{site}_{dirc}')
     
-    for name in keyname:
+    for name in list(keyname):
         split_name = name.split('_')
         site_dirc_name = f'{split_name[1]}_{split_name[2]}'
         if site_dirc_name in input_limit:

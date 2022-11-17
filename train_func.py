@@ -92,6 +92,7 @@ def train(model, dataset, val_dataset, lr=0.001, num_epoch:int=100, batch_size:i
             torch.save(best_model.state_dict(), model_file_name)
             print("saving best model with auc: ", auc)
             
+            
 
 
 def pretrained(model, output_name:str=''):

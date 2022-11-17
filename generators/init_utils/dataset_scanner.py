@@ -33,12 +33,12 @@ def _common_list_generator(init_dict:dict) ->dict:
                 group_id_list.append(init_dict[key])  # list of ids
         # group_id_list [[], [], [], [], ...] 6* [ids_length]
         group_common = set(group_id_list[0]).intersection(*group_id_list[1:])
-        common_list['group'] = group_common
+        common_list[group] = group_common
     return common_list  # {'EAC':[LIST], 'CSA':[LIST], 'ATL':[LIST]}
 
 
 def _common_list_finder(init_dict:dict) ->dict:
-    dict_path = './generators/dicts/common_ids.pkl'
+    dict_path = './dataset/dicts/common_ids.pkl'
     if os.path.isfile(dict_path):
         with open(dict_path, "rb") as tf:
             common_list = pickle.load(tf)
