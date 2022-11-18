@@ -70,7 +70,7 @@ def split_definer(split_list:dict, fold_order:int) ->Tuple[dict, dict]:
     train_split_dict = {}
     val_split_dict = {}
     for key in split_list.keys():
-        val_split = split_list[key][fold_order]  # [LIST]
+        val_split = list(split_list[key][fold_order])  # [LIST]
         train_split = []
         for i in range(5):
             if i != fold_order:
@@ -95,7 +95,6 @@ def balancer(target_list:dict, atlas_list:dict, target_category:list) ->dict:
     target_repeat = capacity_max // length_target
     atlas_repeat = capacity_max // length_atlas
     for key in target_list.keys():
-        # TODO
         target_list[key] = target_list[key] * target_repeat
     for key in atlas_list.keys():
         atlas_list[key] = atlas_list[key] * atlas_repeat

@@ -23,8 +23,8 @@ def main_process(data_dir='', target_category=['EAC', 'ATL'],
         output_name = output_finder(target_category, target_site, target_dirc, fold_order)
         if train_dataset is not None:
             train(model=model, dataset=train_dataset, val_dataset=val_dataset, 
-                  lr=0.0001, num_epoch=100, num_classes=2, output_name=output_name,
-                  extra_aug=False)
+                  lr=0.0001, num_epoch=100, batch_size=10, output_name=output_name,
+                  extra_aug_flag=False)
 
         # Step. 4 Load the weights and predict
         model = pretrained(model=model, output_name=output_name)

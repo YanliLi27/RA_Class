@@ -1,12 +1,9 @@
 import os
-import sys
 import SimpleITK as sitk
 import numpy as np
 from torch.utils import data
-from scipy.ndimage import binary_fill_holes
-import pickle
 from skimage.transform import resize
-from typing import Union
+import torch
 
 
 class ESMIRADataset2D(data.Dataset):
@@ -14,18 +11,22 @@ class ESMIRADataset2D(data.Dataset):
         # train_dict {'site_dirc':[LIST(Target+Atlas): subdir\names.mha:cs:label ], ...}
         self.root = data_root  # the root of data
         self.train_dict = train_dict
-        self.transform = transform
+        if transform is not None:
+            self.transform = transform
+        else:
+            def transform(data:torch.Tensor) ->torch.Tensor:
+                return data
+            self.transform = transform
         self.mean_std = mean_std
+
  
     def __len__(self):
-        key = self.train_dict.keys()
+        key = list(self.train_dict.keys())[0]
         return len(self.train_dict[key])
 
     def __getitem__(self, idx):
-        # if fuse 2 organs, use: self.load_datafile_2_organ(self.dataset_list, idx)
-        # if fuse 3 organs, use: self.load_datafile_3_organ(self.dataset_list, idx)
-        # data, label = self.load_datafile_2_organ(self.dataset_list, idx) # [organ*2*slices, 512, 512]
         data, label = self._load_file(idx)
+        data = torch.from_numpy(data)
         data = self.transform(data)
         return data, label  # [N*5, 512, 512], 1:int
 
@@ -47,7 +48,7 @@ class ESMIRADataset2D(data.Dataset):
                 else:
                     raise ValueError('the shape of input:{}, the id: {}, central_slice: {}'.format(data_array.shape, path, lower))
             data_matrix.append(data_array)
-        return np.vstack(data_matrix), label  # [N*5, 512, 512], 1:int
+        return np.vstack(data_matrix).astype(np.float32), label  # [N*5, 512, 512], 1:int
 
 
     def _itensity_normalize(self, volume: np.array):

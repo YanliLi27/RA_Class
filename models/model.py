@@ -64,11 +64,11 @@ class Classifier(nn.Module):
 
 
 class ModelClass(nn.Module):
-    def __init__(self, img_ch=5, num_class=2, encoder=Encoder, classifier=Classifier, init_weights: bool = True):
+    def __init__(self, img_ch=5, num_classes=2, encoder=Encoder, classifier=Classifier, init_weights: bool = True):
         super(ModelClass, self).__init__()
         self.encoder_class = encoder(img_ch=img_ch)
         group_num = img_ch // 5
-        self.classifier = classifier(num_class=num_class, group_num=group_num)
+        self.classifier = classifier(num_classes=num_classes, group_num=group_num)
         if init_weights:
             self._initialize_weights()
 
