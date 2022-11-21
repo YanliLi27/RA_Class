@@ -23,7 +23,7 @@ def main_process(data_dir='', target_category=['EAC', 'ATL'],
         output_name = output_finder(target_category, target_site, target_dirc, fold_order)
         if train_dataset is not None:
             train(model=model, dataset=train_dataset, val_dataset=val_dataset, 
-                  lr=0.0001, num_epoch=100, batch_size=10, output_name=output_name,
+                  lr=0.0001, num_epoch=100, batch_size=6, output_name=output_name,
                   extra_aug_flag=False)
 
         # Step. 4 Load the weights and predict
@@ -35,5 +35,5 @@ def main_process(data_dir='', target_category=['EAC', 'ATL'],
 
 
 if __name__ == '__main__':
-    main_process(data_dir='D:\\ESMIRA\\ESMIRA_common',  target_category=['EAC', 'ATL'], 
+    main_process(data_dir='D:\\ESMIRA\\ESMIRA_common',  target_category=['CSA', 'ATL'], 
                  target_site=['Wrist'], target_dirc=['TRA', 'COR'], phase='train')

@@ -53,7 +53,7 @@ class Classifier(nn.Module):
             nn.Dropout(),
             nn.Linear(4096, num_classes),
         )
-        self.softmax = nn.Softmax()
+        self.softmax = nn.Softmax(dim=1)
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         x = self.avgpool(x)

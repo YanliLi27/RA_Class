@@ -82,7 +82,7 @@ class ESMIRA_generator:
                                         ]) 
             val_transform = transforms.Compose([
                                             transforms.RandomAffine(0, translate=(0.05, 0), scale=(1, 1), shear=None, fill=0),
-                                        ]) 
+                                        ])
             train_dataset = ESMIRADataset2D(self.data_root,train_dict, transform, mean_std)
             val_dataset = ESMIRADataset2D(self.data_root, val_dict, val_transform, mean_std)
         else:

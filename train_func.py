@@ -1,7 +1,6 @@
 import os  # for paths
 import torch.nn as nn   # used for bulid the neural networks
 from tqdm import tqdm  # just for visualization
-import copy  # not important
 import torch
 from torch.utils.data import DataLoader
 from sklearn.metrics import accuracy_score, roc_auc_score, f1_score, roc_curve
@@ -60,11 +59,14 @@ def predict(model, test_loader, device = torch.device("cuda" if torch.cuda.is_av
     return total_labels.numpy().flatten(),total_preds.numpy().flatten()
 
 
-def train(model, dataset, val_dataset, lr=0.001, num_epoch:int=100, batch_size:int=10, 
+def train(model, dataset, val_dataset, lr=0.0001, num_epoch:int=100, batch_size:int=10, 
           output_name:str='', extra_aug_flag:bool=False, device=torch.device("cuda" if torch.cuda.is_available() else "cpu")):
     lr = lr
-    weight_dec = 0.0001
-    optimizer = torch.optim.Adam(model.parameters(), lr=lr, weight_decay=weight_dec)
+    # weight_dec = 0.0001
+    # optimizer = torch.optim.Adam(model.parameters(), lr=lr, weight_decay=weight_dec)
+    optimizer = torch.optim.SGD(model.parameters(), lr=0.0001, momentum=0.9, weight_decay=1e-5)
+    scheduler = torch.optim.lr_scheduler.ExponentialLR(optimizer, gamma=0.99)
+
     criterion = nn.CrossEntropyLoss()
     batch_size = batch_size
 
@@ -77,20 +79,23 @@ def train(model, dataset, val_dataset, lr=0.001, num_epoch:int=100, batch_size:i
     
     for epoch in range(1, num_epoch + 1):
         train_loss = train_step(model, optimizer, criterion, dataloader, extra_aug_flag, epoch)
+        print(train_loss)
         if epoch % 50 == 0:
             print(f"Loss at epoch {epoch} is {train_loss}")
         G,P = predict(model, val_dataloader)
-
         # accuracy = accuracy_score(G, P)
         auc = roc_auc_score(G, P)
         # fpr, tpr, thresholds = roc_curve(G, P)
-        # f1_scores = f1_score(G, P)
+        f1_scores = f1_score(G, P)
             
         if auc > max_metric:
             max_metric = auc
-            best_model = copy.deepcopy(model)
-            torch.save(best_model.state_dict(), model_file_name)
+            torch.save(model.state_dict(), model_file_name)
             print("saving best model with auc: ", auc)
+        else:
+            print('auc:',auc)
+            scheduler.step()
+        print('f1:', f1_scores)
             
             
 
