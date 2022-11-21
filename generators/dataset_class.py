@@ -3,6 +3,7 @@ from generators.init_utils.dataset_scanner import ESMIRA_scanner
 from generators.init_utils.input_filter import input_filter
 from generators.init_utils.split_generator import class_generator, split_generator, split_definer, balancer, val_split_definer
 from generators.init_utils.central_slice import central_slice_generator
+from generators.init_utils.split_saver import split_saver
 from dataset.datasets import ESMIRADataset2D
 from torch.utils.data import Dataset
 from typing import Union, Tuple
@@ -32,8 +33,8 @@ class ESMIRA_generator:
         if os.path.isfile(self.default_cs_path):
             with open(self.default_cs_path, "rb") as tf:
                 self.common_cs_dict = pickle.load(tf)
-                print('saved dataset+central slice dict:{}'.format(self.common_cs_dict.keys()))
-                print('--------found saved info--------')
+            print('saved dataset+central slice dict:{}'.format(self.common_cs_dict.keys()))
+            print('--------found saved info--------')
         else:
             self.common_cs_dict = central_slice_generator(self.data_root, self.common_dict)
             # From now, no more ids, but the specific name and path /此处开始不再是ids，而是具体的名称和路径
@@ -48,16 +49,29 @@ class ESMIRA_generator:
         print('Remained keys: ', self.common_cs_dict.keys())
         # common_cs_dict  {'EAC_Wrist_TRA':[LIST-'Names_label.mha:10to15'], 'ATL_Wrist_TRA':[LIST-'Names_label.mha:8to13']}
 
+        self.repr_target_split_path = split_saver(target_category, target_site, target_dirc, True)
+        self.repr_atlas_split_path = split_saver(target_category, target_site, target_dirc, False)
+        if os.path.isfile(self.repr_target_split_path) and os.path.isfile(self.repr_atlas_split_path):
+            with open(self.repr_target_split_path, "rb") as tf:
+                self.target_split = pickle.load(tf)
+            with open(self.repr_atlas_split_path, "rb") as tf2:
+                self.atlas_split = pickle.load(tf2)
+            print('--------found saved split--------')
         # label generation and fold-split    
-        self.target_split, self.atlas_split = class_generator(self.common_cs_dict, target_category)
-        # target_split -- {'EAC_XXX_XXX':[LIST--subname+names.mha:10to15:label], ...}
-        # atlas_split -- {'ATL_XXX_XXX':[LIST--subname+names.mha:10to15:label], ...}
+        else:
+            self.target_split, self.atlas_split = class_generator(self.common_cs_dict, target_category)
+            # target_split -- {'EAC_XXX_XXX':[LIST--subname+names.mha:10to15:label], ...}
+            # atlas_split -- {'ATL_XXX_XXX':[LIST--subname+names.mha:10to15:label], ...}
 
-        # in each sub-list 'Cate_XXX_XXX', split into 5 fold:
-        self.target_split = split_generator(self.target_split)
-        self.atlas_split = split_generator(self.atlas_split)
-        # {'EAC_XXX_XXX':[5*[LIST--subname+names.mha:10to15:1]], 'EAC_XXX_XXX':[5*[LIST--subname+names.mha:10to15:1]], ...}
-        # {'ATL_XXX_XXX':[5*[LIST--subname+names.mha:10to15:0]], 'ATL_XXX_XXX':[5*[LIST--subname+names.mha:10to15:0]], ...}
+            # in each sub-list 'Cate_XXX_XXX', split into 5 fold:
+            self.target_split = split_generator(self.target_split)
+            self.atlas_split = split_generator(self.atlas_split)
+            # {'EAC_XXX_XXX':[5*[LIST--subname+names.mha:10to15:1]], 'EAC_XXX_XXX':[5*[LIST--subname+names.mha:10to15:1]], ...}
+            # {'ATL_XXX_XXX':[5*[LIST--subname+names.mha:10to15:0]], 'ATL_XXX_XXX':[5*[LIST--subname+names.mha:10to15:0]], ...}
+            with open(self.repr_target_split_path, "wb") as tf:
+                pickle.dump(self.target_split, tf)
+            with open(self.repr_atlas_split_path, "wb") as tf2:
+                pickle.dump(self.atlas_split, tf2)
         print('-------------------------------> Dataset Initialization Finished <-------------------------------')
 
 
