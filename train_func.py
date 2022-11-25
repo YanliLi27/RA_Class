@@ -64,7 +64,7 @@ def train(model, dataset, val_dataset, lr=0.0001, num_epoch:int=100, batch_size:
     lr = lr
     # weight_dec = 0.0001
     # optimizer = torch.optim.Adam(model.parameters(), lr=lr, weight_decay=weight_dec)
-    optimizer = torch.optim.SGD(model.parameters(), lr=0.0001, momentum=0.9, weight_decay=1e-5)
+    optimizer = torch.optim.SGD(model.parameters(), lr=0.0001, momentum=0.9, weight_decay=1e-4)
     scheduler = torch.optim.lr_scheduler.ExponentialLR(optimizer, gamma=0.99)
 
     criterion = nn.CrossEntropyLoss()
@@ -96,6 +96,7 @@ def train(model, dataset, val_dataset, lr=0.0001, num_epoch:int=100, batch_size:
             print('auc:',auc)
             scheduler.step()
         print('f1:', f1_scores)
+    return max_metric
             
             
 
