@@ -6,11 +6,11 @@ import os
 
 def class_generator(common_dict:dict, target_category:list) ->dict:
     # please get the target_category with the order of [EAC, CSA, ATL]
-    # 此处classification和prediction有所不同，一个是按照名称划分。一个是按照key划分，因此根据target_category应构成两个不同的function
-    # TODO 要不干脆直接在这个阶段把标签添加到名称里面，变成：Subname+Names.mha:10to15:1 -- 即‘路径：切片：标签’
-    # 并且由于此处已经过了保存pickle的部分，因此保存的pickle不会随之变化
-    # target_split -- {'EAC_Wrist_TRA':[5*[LIST--subname+names.mha:10to15:label]], 'EAC_MCP_TRA':...}
-    # atlas_split -- {'EAC_Wrist_TRA':[5*[LIST--subname+names.mha:10to15:label]], ...}
+    # input:
+    # ramris_dict {'EAC_Wrist_1':dataframe, 'ATL_Wrist_1':dataframe}
+    # return:
+    # target_split -- {'EAC_Wrist_1':[5*[LIST--subname+names.mha:10to15:label]], 'EAC_MCP_1':...}
+    # atlas_split -- {'AATL_Wrist_1':[5*[LIST--subname+names.mha:10to15:label]], ...}
     target_split = {}
     atlas_split = {}
     if len(target_category) == 1:  # Prediction task:  same subdir(cate), different sites and dirc
@@ -115,7 +115,7 @@ def balancer(target_list:dict, atlas_list:dict, target_category:list) ->dict:
     return merged_list  # {'site_dirc':[LIST(Target+Atlas): subdir\names.mha:cs:label ], ...}
 
 
-def val_split_definer(split_list:dict) ->Tuple[dict, dict]:
+def val_split_definer(split_list:dict) ->dict:
     # {'EAC_XXX_XXX':[5*[LIST]], 'EAC_XXX_XXX':[5*[LIST]], ...}
     # -> train {'EAC_XXX_XXX':[4LIST], 'EAC_XXX_XXX':[4LIST], ...}, val {'EAC_XXX_XXX':[LIST], 'EAC_XXX_XXX':[LIST] ...}
     val_split_dict = {}
