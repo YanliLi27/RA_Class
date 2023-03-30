@@ -9,6 +9,7 @@ from torch.utils.data import Dataset
 from typing import Union, Tuple
 from torchvision import transforms
 import pickle
+import pandas as pd
 
 
 class ESMIRA_generator:
@@ -28,8 +29,8 @@ class ESMIRA_generator:
             # EACNUMM	MRI_T1	MRIdate_T1	MRI_T2	MRIdate_T2	MRI_T4	MRIdate_T4	MRI_T6	MRIdate_T6	RA_baseline	RA_1yr	658	112	770
             # path: D:\ESMIRA\SPSS data\Copy of EAC RAdiags excel_changeInRA.xlsx
             # create an id list
-
-
+            target_id_lsit = self._id_finder_eac(path='D:\\ESMIRA\\SPSS data\\Copy of EAC RAdiags excel_changeInRA.xlsx')
+            self.common_dict['EAC'] = self._id_filter_eac(self.common_dict['EAC'], target_id_lsit)
 
             with open(self.default_id_path, "wb") as tf:
                 pickle.dump(self.common_dict, tf)
@@ -81,6 +82,29 @@ class ESMIRA_generator:
             with open(self.repr_atlas_split_path, "wb") as tf2:
                 pickle.dump(self.atlas_split, tf2)
         print('-------------------------------> Dataset Initialization Finished <-------------------------------')
+
+    def _id_finder_eac(path:str=''):
+        target_id_list = []
+        df = pd.read_excel(path)
+        assert df.columns == ['EACNUMM', 'MRI_T1', 'MRIdate_T1', 'MRI_T2', 'MRIdate_T2', 'MRI_T4', 'MRIdate_T4',
+                              	'MRI_T6', 'MRIdate_T6', 'RA_baseline', 'RA_1yr', '658', '112', '770']
+        df1 = df.loc[df['770']==1]
+        target_id_list = df1['EACNUMM'].values
+        print(target_id_list)
+        return target_id_list
+    
+    def _id_filter_eac(init_list:list, target_id_list:list):
+        # 3393 --> 'Arth3393_EAC' in init_list
+        return_list = []
+        for item in init_list:
+            item_short = item.replace('Arth', '')
+            item_short = item_short.replace('_EAC', '')
+            if item_short in target_id_list:
+                return_list.append(item)
+        print(f'length of target list: {len(target_id_list)}')
+        print(f'length of init list: {len(init_list)}')
+        print((f'length of return list: {len(return_list)}'))
+        return return_list
 
 
     def returner(self, phase:str='train', fold_order:int=0, mean_std:bool=False) ->Tuple[Union[None, Dataset], Dataset]:
