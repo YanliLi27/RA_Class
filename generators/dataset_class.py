@@ -90,6 +90,7 @@ class ESMIRA_generator:
                               	'MRI_T6', 'MRIdate_T6', 'RA_baseline', 'RA_1yr', '658', '112', '770']
         df1 = df.loc[df['770']==1]
         target_id_list = df1['EACNUMM'].values
+        print(target_id_list.dtype)
         print(target_id_list)
         return target_id_list
     
