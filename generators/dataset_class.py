@@ -23,7 +23,14 @@ class ESMIRA_generator:
             with open(self.default_id_path, "rb") as tf:
                 self.common_dict = pickle.load(tf)
         else:
-            self.common_dict = ESMIRA_scanner(self.data_root)
+            self.common_dict = ESMIRA_scanner(self.data_root)  # {'EAC':[LIST], 'CSA':[LIST], 'ATL':[LIST]} [LIST] -- ['Csa842_CSA', ...]
+            # TODO insert a id-based filter
+            # EACNUMM	MRI_T1	MRIdate_T1	MRI_T2	MRIdate_T2	MRI_T4	MRIdate_T4	MRI_T6	MRIdate_T6	RA_baseline	RA_1yr	658	112	770
+            # path: D:\ESMIRA\SPSS data\Copy of EAC RAdiags excel_changeInRA.xlsx
+            # create an id list
+
+
+
             with open(self.default_id_path, "wb") as tf:
                 pickle.dump(self.common_dict, tf)
             
@@ -48,6 +55,7 @@ class ESMIRA_generator:
         self.common_cs_dict = input_filter(self.common_cs_dict, target_category, target_site, target_dirc)
         print('Remained keys: ', self.common_cs_dict.keys())
         # common_cs_dict  {'EAC_Wrist_TRA':[LIST-'Names_label.mha:10to15'], 'ATL_Wrist_TRA':[LIST-'Names_label.mha:8to13']}
+
 
         self.repr_target_split_path = split_saver(target_category, target_site, target_dirc, True)
         self.repr_atlas_split_path = split_saver(target_category, target_site, target_dirc, False)
