@@ -25,7 +25,6 @@ class ESMIRA_generator:
                 self.common_dict = pickle.load(tf)
         else:
             self.common_dict = ESMIRA_scanner(self.data_root)  # {'EAC':[LIST], 'CSA':[LIST], 'ATL':[LIST]} [LIST] -- ['Csa842_CSA', ...]
-            # TODO insert a id-based filter
             # EACNUMM	MRI_T1	MRIdate_T1	MRI_T2	MRIdate_T2	MRI_T4	MRIdate_T4	MRI_T6	MRIdate_T6	RA_baseline	RA_1yr	658	112	770
             # path: D:\ESMIRA\SPSS data\Copy of EAC RAdiags excel_changeInRA.xlsx
             # create an id list

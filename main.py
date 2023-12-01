@@ -5,6 +5,7 @@ from generators.dataset_class import ESMIRA_generator
 from train_func import train, pretrained, predict
 from models.model import ModelClass
 from utils.output_finder import output_finder
+from torchvision.models import MobileNetV3
 
 
 def main_process(data_dir='', target_category=['EAC', 'ATL'], 
@@ -17,7 +18,9 @@ def main_process(data_dir='', target_category=['EAC', 'ATL'],
 
         # Step. 2 get the model: (can be any nn.Module, make sure it fit your input size and output size)
         in_channel = len(target_site) * len(target_dirc) * 5
-        model = ModelClass(in_channel, num_classes=2) 
+        # model = ModelClass(in_channel, num_classes=2)
+        mobilenetv3 = MobileNetV3(last_channel=4096, num_classes=2)
+        model = mobilenetv3
 
         # Step. 3 Train the model /OR load the weights
         output_name = output_finder(target_category, target_site, target_dirc, fold_order)
@@ -36,5 +39,5 @@ def main_process(data_dir='', target_category=['EAC', 'ATL'],
 
 
 if __name__ == '__main__':
-    main_process(data_dir='D:\\ESMIRA\\ESMIRA_common',  target_category=['EAC'], 
-                 target_site=['MCP'], target_dirc=['TRA', 'COR'], phase='train')
+    main_process(data_dir='D:\\ESMIRA\\ESMIRA_common',  target_category=['CSA'], 
+                 target_site=['Wrist','MCP'], target_dirc=['TRA', 'COR'], phase='train')
