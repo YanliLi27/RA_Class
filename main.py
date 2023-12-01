@@ -4,8 +4,9 @@ from sklearn.metrics import classification_report, roc_auc_score, confusion_matr
 from generators.dataset_class import ESMIRA_generator
 from train_func import train, pretrained, predict
 from models.model import ModelClass
-from utils.output_finder import output_finder
+from myutils.output_finder import output_finder
 from torchvision.models import MobileNetV3
+from models.mobilevit import mobilevit_s, mobilevit_xs, mobilevit_xxs
 
 
 def main_process(data_dir='', target_category=['EAC', 'ATL'], 
@@ -17,10 +18,10 @@ def main_process(data_dir='', target_category=['EAC', 'ATL'],
         # input: [N*5, 512, 512] + int(label)
 
         # Step. 2 get the model: (can be any nn.Module, make sure it fit your input size and output size)
-        in_channel = len(target_site) * len(target_dirc) * 5
+        # in_channel = len(target_site) * len(target_dirc) * 5
         # model = ModelClass(in_channel, num_classes=2)
-        mobilenetv3 = MobileNetV3(last_channel=4096, num_classes=2)
-        model = mobilenetv3
+        model = MobileNetV3(last_channel=4096, num_classes=2)
+        model = mobilevit_xxs(img_2dsize=(512, 512), num_classes=2, patch_size=(4,4))
 
         # Step. 3 Train the model /OR load the weights
         output_name = output_finder(target_category, target_site, target_dirc, fold_order)

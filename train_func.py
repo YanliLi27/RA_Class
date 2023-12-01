@@ -4,7 +4,8 @@ from tqdm import tqdm  # just for visualization
 import torch
 from torch.utils.data import DataLoader
 from sklearn.metrics import accuracy_score, roc_auc_score, f1_score, roc_curve
-from utils.extra_aug import extra_aug
+from myutils.extra_aug import extra_aug
+from thop import profile
 
 
 def train_step(model, optimizer, criterion, train_loader, extra_aug_flag:bool=False, epoch:int=0,
@@ -73,6 +74,11 @@ def train(model, dataset, val_dataset, lr=0.0001, num_epoch:int=100, batch_size:
     dataloader = DataLoader(dataset, batch_size=batch_size, shuffle=True, num_workers=4)
     val_dataloader = DataLoader(val_dataset, batch_size=batch_size, shuffle=True, num_workers=4)
     max_metric = 0
+
+    x1, _ = iter(dataloader)
+    flops, params = profile(model, inputs=(x1))
+    print(f'FLOPS: {flops}, params: {params}')
+
     model = model.to(device)
 
     model_file_name = output_name
