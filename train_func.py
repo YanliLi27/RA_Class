@@ -89,6 +89,7 @@ def train(model, dataset, val_dataset, lr=0.0001, num_epoch:int=100, batch_size:
     model = model.to(device)
 
     model_file_name = output_name
+    recorded_flag = False
     
     for epoch in range(1, num_epoch + 1):
         train_loss = train_step(model, optimizer, criterion, dataloader, extra_aug_flag, epoch)
@@ -103,6 +104,7 @@ def train(model, dataset, val_dataset, lr=0.0001, num_epoch:int=100, batch_size:
             
         if auc > max_metric and train_loss<=0.67:
             max_metric = auc
+            recorded_flag = True
             torch.save(model.state_dict(), model_file_name)
             print("saving best model with auc: ", auc)
             auc_save(max_metric, epoch, save_path=f'{save_dir}/record.txt')
@@ -112,6 +114,12 @@ def train(model, dataset, val_dataset, lr=0.0001, num_epoch:int=100, batch_size:
             if not optim_ada:
                 scheduler.step()
         print('f1:', f1_scores)
+
+        if epoch >20 and recorded_flag==False:
+            recorded_flag = True
+            print('save for compare')
+            auc_save(max_metric, epoch, save_path=f'{save_dir}/record.txt')
+            auc_save(f1_scores, epoch, save_path=f'{save_dir}/record.txt', mode='f1')
     return max_metric
             
             
