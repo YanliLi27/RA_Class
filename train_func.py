@@ -6,6 +6,7 @@ from torch.utils.data import DataLoader
 from sklearn.metrics import accuracy_score, roc_auc_score, f1_score, roc_curve
 from myutils.extra_aug import extra_aug
 from thop import profile
+from myutils.record import record_save, corr_save, auc_save
 
 
 def train_step(model, optimizer, criterion, train_loader, extra_aug_flag:bool=False, epoch:int=0,
@@ -61,12 +62,17 @@ def predict(model, test_loader, device = torch.device("cuda" if torch.cuda.is_av
 
 
 def train(model, dataset, val_dataset, lr=0.0001, num_epoch:int=100, batch_size:int=10, 
-          output_name:str='', extra_aug_flag:bool=False, device=torch.device("cuda" if torch.cuda.is_available() else "cpu")):
+          output_name:str='', extra_aug_flag:bool=False, weight_decay:float=1e-5,
+          optim_ada:bool=False, save_dir:str='',
+          device=torch.device("cuda" if torch.cuda.is_available() else "cpu")):
     lr = lr
     # weight_dec = 0.0001
     # optimizer = torch.optim.Adam(model.parameters(), lr=lr, weight_decay=weight_dec)
-    optimizer = torch.optim.SGD(model.parameters(), lr=0.0001, momentum=0.9, weight_decay=1e-4)
-    scheduler = torch.optim.lr_scheduler.ExponentialLR(optimizer, gamma=0.99)
+    if optim_ada:
+        optimizer = torch.optim.AdamW(model.parameters(), lr=lr, weight_decay=weight_decay)
+    else:
+        optimizer = torch.optim.SGD(model.parameters(), lr=lr, momentum=0.9, weight_decay=weight_decay)
+        scheduler = torch.optim.lr_scheduler.ExponentialLR(optimizer, gamma=0.99)
 
     criterion = nn.CrossEntropyLoss()
     batch_size = batch_size
@@ -75,8 +81,9 @@ def train(model, dataset, val_dataset, lr=0.0001, num_epoch:int=100, batch_size:
     val_dataloader = DataLoader(val_dataset, batch_size=batch_size, shuffle=True, num_workers=4)
     max_metric = 0
 
-    x1, _ = iter(dataloader)
-    flops, params = profile(model, inputs=(x1))
+    x1, _ = next(iter(dataloader))
+    print(x1.shape)
+    flops, params = profile(model, inputs=(x1, ))
     print(f'FLOPS: {flops}, params: {params}')
 
     model = model.to(device)
@@ -94,10 +101,12 @@ def train(model, dataset, val_dataset, lr=0.0001, num_epoch:int=100, batch_size:
         # fpr, tpr, thresholds = roc_curve(G, P)
         f1_scores = f1_score(G, P)
             
-        if auc > max_metric:
+        if auc > max_metric and train_loss<=0.67:
             max_metric = auc
             torch.save(model.state_dict(), model_file_name)
             print("saving best model with auc: ", auc)
+            auc_save(max_metric, epoch, save_path=f'{save_dir}/record.txt')
+            auc_save(f1_scores, epoch, save_path=f'{save_dir}/record.txt', mode='f1')
         else:
             print('auc:',auc)
             scheduler.step()

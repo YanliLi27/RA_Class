@@ -165,7 +165,7 @@ class MobileViTBlock(nn.Module):
 
 
 class MobileViT(nn.Module):
-    def __init__(self, image_size, dims, channels, num_classes, expansion=4, kernel_size=3, patch_size=(2, 2)):
+    def __init__(self, image_size, dims, inch, channels, num_classes, expansion=4, kernel_size=3, patch_size=(2, 2)):
         super().__init__()
         ih, iw = image_size
         ph, pw = patch_size
@@ -173,7 +173,7 @@ class MobileViT(nn.Module):
 
         L = [2, 4, 3]
 
-        self.conv1 = conv_nxn_bn(3, channels[0], stride=2)
+        self.conv1 = conv_nxn_bn(inch, channels[0], stride=2)
 
         self.mv2 = nn.ModuleList([])
         self.mv2.append(MV2Block(channels[0], channels[1], 1, expansion))
@@ -217,22 +217,22 @@ class MobileViT(nn.Module):
         return x
 
 
-def mobilevit_xxs(img_2dsize=(256, 256), num_classes=2, patch_size=(2,2)):
+def mobilevit_xxs(img_2dsize=(256, 256), inch=20, num_classes=2, patch_size=(2,2)):
     dims = [64, 80, 96]
     channels = [16, 16, 24, 24, 48, 48, 64, 64, 80, 80, 320]
-    return MobileViT(img_2dsize, dims, channels, num_classes=num_classes, expansion=2, patch_size=patch_size)
+    return MobileViT(img_2dsize, dims, inch, channels, num_classes=num_classes, expansion=2, patch_size=patch_size)
 
 
-def mobilevit_xs(img_2dsize=(256, 256), num_classes=2, patch_size=(2,2)):
+def mobilevit_xs(img_2dsize=(256, 256), inch=20, num_classes=2, patch_size=(2,2)):
     dims = [96, 120, 144]
     channels = [16, 32, 48, 48, 64, 64, 80, 80, 96, 96, 384]
-    return MobileViT(img_2dsize, dims, channels, num_classes=num_classes, patch_size=patch_size)
+    return MobileViT(img_2dsize, dims, inch, channels, num_classes=num_classes, patch_size=patch_size)
 
 
-def mobilevit_s(img_2dsize=(256, 256), num_classes=2, patch_size=(2,2)):
+def mobilevit_s(img_2dsize=(256, 256), inch=20, num_classes=2, patch_size=(2,2)):
     dims = [144, 192, 240]
     channels = [16, 32, 64, 64, 96, 96, 128, 128, 160, 160, 640]
-    return MobileViT(img_2dsize, dims, channels, num_classes=num_classes, patch_size=patch_size)
+    return MobileViT(img_2dsize, dims, inch, channels, num_classes=num_classes, patch_size=patch_size)
 
 
 def count_parameters(model):
