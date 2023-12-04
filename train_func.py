@@ -109,7 +109,8 @@ def train(model, dataset, val_dataset, lr=0.0001, num_epoch:int=100, batch_size:
             auc_save(f1_scores, epoch, save_path=f'{save_dir}/record.txt', mode='f1')
         else:
             print('auc:',auc)
-            scheduler.step()
+            if not optim_ada:
+                scheduler.step()
         print('f1:', f1_scores)
     return max_metric
             
