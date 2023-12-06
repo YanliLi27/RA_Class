@@ -24,7 +24,7 @@ from models.vit import ViT
 from models.mobilevit import mobilevit_s, mobilevit_xs, mobilevit_xxs
 
 # model = ModelClass(img_ch=40, num_classes=2)
-model = ViT(image_size=(512, 512), patch_size=(8, 8), num_classes=2, 
+model = ViT(image_size=(512, 512), patch_size=(4, 8), num_classes=2, 
                dim=256, depth=6, heads=8, mlp_dim=512, pool='cls', channels=40, dropout=0.2, emb_dropout=0.2)
 arr = torch.randn((6, 40, 512, 512))
 
