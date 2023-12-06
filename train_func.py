@@ -118,6 +118,7 @@ def train(model, dataset, val_dataset, lr=0.0001, num_epoch:int=100, batch_size:
         if epoch >20 and recorded_flag==False:
             recorded_flag = True
             print('save for compare')
+            max_metric = auc
             auc_save(max_metric, epoch, save_path=f'{save_dir}/record.txt')
             auc_save(f1_scores, epoch, save_path=f'{save_dir}/record.txt', mode='f1')
     return max_metric

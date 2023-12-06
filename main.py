@@ -40,7 +40,7 @@ def main_process(data_dir='', target_category=['EAC', 'ATL'],
             raise ValueError('not supported model')
 
         # Step. 3 Train the model /OR load the weights
-        output_name = output_finder(target_category, target_site, target_dirc, fold_order)
+        output_name = output_finder(model_counter, target_category, target_site, target_dirc, fold_order)
         if train_dataset is not None:
             best_auc = train(model=model, dataset=train_dataset, val_dataset=val_dataset, 
                              lr=0.0001, num_epoch=50, batch_size=6, output_name=output_name,
