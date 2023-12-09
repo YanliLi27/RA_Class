@@ -36,7 +36,7 @@ def train_step(model, optimizer, criterion, train_loader, extra_aug_flag:bool=Fa
             with torch.cuda.amp.autocast():
                 x = x.to(device)
                 y = y.to(device)
-                y_pred = model(x=x)
+                y_pred = model(x)
                 loss = criterion(y_pred, y)
                 # next three lines are unchanged for all the tasks
             scaler.scale(loss).backward()
@@ -54,7 +54,7 @@ def predict(model, test_loader, device = torch.device("cuda" if torch.cuda.is_av
         for x,y in tqdm(test_loader):
             x = x.to(device)
             y = y.to(device)
-            pred = model(x=x)
+            pred = model(x)
             y_pred = torch.argmax(pred, dim=1)
             total_preds = torch.cat((total_preds, y_pred.cpu()), 0)
             total_labels = torch.cat((total_labels, y.cpu()), 0)

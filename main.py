@@ -6,6 +6,7 @@ from train_func import train, pretrained, predict
 from models.model import ModelClass
 from myutils.output_finder import output_finder
 from torchvision.models import MobileNetV2
+from models.vit import ViT
 from models.mobilevit import mobilevit_s, mobilevit_xs, mobilevit_xxs
 from myutils.record import record_save, corr_save, auc_save
 import os
@@ -34,8 +35,18 @@ def main_process(data_dir='', target_category=['EAC', 'ATL'],
         # model = ModelClass(in_channel, num_classes=2)
         if model_counter == 'mobilenet':
             model = MobileNetV2(num_classes=2, inch=in_channel)
+            batch_size = 6
+            lr = 0.0001
         elif model_counter == 'mobilevit':
             model = mobilevit_xxs(img_2dsize=(512, 512), inch=in_channel, num_classes=2, patch_size=(4,4))
+            batch_size = 6
+            lr = 0.0001
+        elif model_counter == 'vit':
+            model = ViT(image_size=(512, 512), patch_size=(16, 16), num_classes=2, 
+                        dim=256, depth=12, heads=8, mlp_dim=512, pool='mean', channels=in_channel, 
+                        dropout=0.2, emb_dropout=0.2)
+            batch_size = 6
+            lr = 0.0001
         else:
             raise ValueError('not supported model')
 
@@ -43,7 +54,7 @@ def main_process(data_dir='', target_category=['EAC', 'ATL'],
         output_name = output_finder(model_counter, target_category, target_site, target_dirc, fold_order)
         if train_dataset is not None:
             best_auc = train(model=model, dataset=train_dataset, val_dataset=val_dataset, 
-                             lr=0.0001, num_epoch=50, batch_size=6, output_name=output_name,
+                             lr=lr, num_epoch=50, batch_size=batch_size, output_name=output_name,
                              extra_aug_flag=False, weight_decay=1e-5, optim_ada=True, save_dir=save_dir)
         corr_save(best_auc, 0, mode='acc', save_path=f'{save_dir}/record.txt')
         best_auc_list.append(best_auc)
@@ -58,7 +69,7 @@ def main_process(data_dir='', target_category=['EAC', 'ATL'],
 
 if __name__ == '__main__':
     task_zoo = [['CSA'], ['EAC'], ['EAC', 'ATL'], ['CSA', 'ATL']]
-    model_zoo = ['mobilevit', 'mobilenet']
+    model_zoo = ['vit']# ['mobilevit', 'mobilenet']
     for task in task_zoo:
         for model_counter in model_zoo:
             main_process(data_dir='D:\\ESMIRA\\ESMIRA_common',  target_category=task, 
