@@ -38,7 +38,7 @@ def main_process(data_dir='', target_category=['EAC', 'ATL'],
             batch_size = 6
             lr = 0.0001
         elif model_counter == 'mobilevit':
-            model = mobilevit_xxs(img_2dsize=(512, 512), inch=in_channel, num_classes=2, patch_size=(4,4))
+            model = mobilevit_s(img_2dsize=(512, 512), inch=in_channel, num_classes=2, patch_size=(4,4))
             batch_size = 6
             lr = 0.0001
         elif model_counter == 'vit':
@@ -47,6 +47,10 @@ def main_process(data_dir='', target_category=['EAC', 'ATL'],
                         dropout=0.2, emb_dropout=0.2)
             batch_size = 6
             lr = 0.0001
+        elif model_counter == 'modelclass':
+            model = ModelClass(in_channel, num_classes=2)
+            batch_size = 6
+            lr = 0.00005
         else:
             raise ValueError('not supported model')
 
@@ -69,7 +73,7 @@ def main_process(data_dir='', target_category=['EAC', 'ATL'],
 
 if __name__ == '__main__':
     task_zoo = [['CSA'], ['EAC'], ['EAC', 'ATL'], ['CSA', 'ATL']]
-    model_zoo = ['vit']# ['mobilevit', 'mobilenet']
+    model_zoo = ['', 'vit', 'mobilevit', 'mobilenet']
     for task in task_zoo:
         for model_counter in model_zoo:
             main_process(data_dir='D:\\ESMIRA\\ESMIRA_common',  target_category=task, 
