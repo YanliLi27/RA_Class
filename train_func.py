@@ -17,6 +17,7 @@ def train_step(model, optimizer, criterion, train_loader, extra_aug_flag:bool=Fa
     if extra_aug_flag:
         crit_aug = nn.MSELoss()
         for x,y in tqdm(train_loader):
+            optimizer.zero_grad()
             with torch.cuda.amp.autocast():
                 x = x.to(device)
                 aug_x = extra_aug(x)
@@ -33,6 +34,7 @@ def train_step(model, optimizer, criterion, train_loader, extra_aug_flag:bool=Fa
     
     else:
         for x,y in tqdm(train_loader):
+            optimizer.zero_grad()
             with torch.cuda.amp.autocast():
                 x = x.to(device)
                 y = y.to(device)
