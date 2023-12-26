@@ -15,6 +15,7 @@ from typing import Optional
 
 class NormCNN(nn.Module):
     def __init__(self, inp, oup, kernal_size=3, stride=1, groups=4):
+        super().__init__()
         self.cnn = nn.Sequential(
         nn.Conv2d(inp, oup, kernal_size, stride, 1, groups=groups, bias=False),
         nn.BatchNorm2d(oup),

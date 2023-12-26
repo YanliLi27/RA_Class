@@ -55,6 +55,8 @@ def main_process(data_dir='', target_category=['EAC', 'ATL'],
         elif model_counter == 'convsharevit':
             model = make_csvmodel(img_2dsize=(512, 512), inch=20, num_classes=2, 
                   groups=4, width=1, dsconv=False, parallel=False, patch_size=(2,2))
+            batch_size = 6
+            lr = 0.0001
         else:
             raise ValueError('not supported model')
 

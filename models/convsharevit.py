@@ -19,8 +19,8 @@ from typing import Callable, Any, Optional, List, Union
 class ConvShareViT(nn.Module):
     def __init__(self, image_size, in_ch:int, num_classes:int=2, groups:int=4, width:int=1,# basic
                  dsconv:bool=False, parallel:bool=False, # module type
-                 block_setting:Optional[List[List[str, int]]] = None,
-                 patch_size:Union[list,int]=(2, 2),  # vit
+                 block_setting:Optional[List[List]] = None,
+                 patch_size:Union[list,tuple,int]=(2, 2),  # vit
                  initialization:bool=False
                  ):
         super().__init__()
@@ -62,7 +62,10 @@ class ConvShareViT(nn.Module):
         '''
         # vit setting: --------------------------------------------------------------------------------------------#
         ih, iw = image_size
-        ph, pw = patch_size if type(patch_size)==list else patch_size, patch_size
+        if type(patch_size)==list or type(patch_size)==tuple:
+            ph, pw = patch_size  
+        else:
+            ph, pw = patch_size, patch_size
         assert ih % ph == 0 and iw % pw == 0
         # vit setting: --------------------------------------------------------------------------------------------#
         # block setting: ------------------------------------------------------------------------------------------#
@@ -75,7 +78,7 @@ class ConvShareViT(nn.Module):
                 ['c', 32, 3, 1, 4, 1, 0],  # one layer of normal conv # B, 4*C, L/2(256), W/2(256) 不变
                 ['c', 64, 3, 2, 4, 3, 0],  # downsample + three layers of conv # B, 4*C, L/2(256), W/2(256) -> B, 4*C, L/4(128), W/4(128)
                 ['c', 96, 3, 2, 4, 1, 0],  # downsample + one layer of conv # B, 4*C, L/4(128), W/4(128) -> B, 4*C, L/8(64), W/8(64)
-                ['t', 96, 3, 2, 4, 6, 128]  # vit # B, 4*C, L/8(64), W/8(64) -> B, 4*C, L/8(64), W/8(64)
+                ['t', 96, 3, 2, 4, 6, 128],  # vit # B, 4*C, L/8(64), W/8(64) -> B, 4*C, L/8(64), W/8(64)
                 # vit信息转换，跨输入进行信息交互
                 ['c', 160, 3, 2, 4, 1, 0],  # downsample + one layer of conv # B, 4*C, L/8(64), W/8(64) -> B, 4*C, L/16(32), W/16(32)
                 # 用于中间信息转换的cnn，主要进行降维
@@ -160,7 +163,7 @@ def make_csvmodel(img_2dsize=(512, 512), inch=20, num_classes=2,
                 ['c', 32, 3, 1, 4, 1, 0],  # one layer of normal conv # B, 4*C, L/2(256), W/2(256) 不变
                 ['c', 64, 3, 2, 4, 3, 0],  # downsample + three layers of conv # B, 4*C, L/2(256), W/2(256) -> B, 4*C, L/4(128), W/4(128)
                 ['c', 96, 3, 2, 4, 1, 0],  # downsample + one layer of conv # B, 4*C, L/4(128), W/4(128) -> B, 4*C, L/8(64), W/8(64)
-                ['t', 96, 3, 2, 4, 6, 128]  # vit # B, 4*C, L/8(64), W/8(64) -> B, 4*C, L/8(64), W/8(64)
+                ['t', 96, 3, 2, 4, 6, 128],  # vit # B, 4*C, L/8(64), W/8(64) -> B, 4*C, L/8(64), W/8(64)
                 ['c', 160, 3, 2, 4, 1, 0],  # downsample + one layer of conv # B, 4*C, L/8(64), W/8(64) -> B, 4*C, L/16(32), W/16(32)
                 ['t', 160, 3, 1, 4, 3, 640],  # vit # B, 4*C, L/16(32), W/16(32) -> B, 4*C, L/16(32), W/16(32)
                 ['c', 160, 3, 1, 4, 1, 0],  # one layer of conv
