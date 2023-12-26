@@ -54,9 +54,9 @@ def main_process(data_dir='', target_category=['EAC', 'ATL'],
             lr = 0.00005
         elif model_counter == 'convsharevit':
             model = make_csvmodel(img_2dsize=(512, 512), inch=20, num_classes=2, 
-                  groups=4, width=1, dsconv=False, parallel=False, patch_size=(2,2))
-            batch_size = 6
-            lr = 0.0001
+                  groups=4, width=1, dsconv=False, parallel=False, patch_size=(4,4))
+            batch_size = 10
+            lr = 0.00005
         else:
             raise ValueError('not supported model')
 
@@ -64,8 +64,8 @@ def main_process(data_dir='', target_category=['EAC', 'ATL'],
         output_name = output_finder(model_counter, target_category, target_site, target_dirc, fold_order)
         if train_dataset is not None:
             best_auc = train(model=model, dataset=train_dataset, val_dataset=val_dataset, 
-                             lr=lr, num_epoch=50, batch_size=batch_size, output_name=output_name,
-                             extra_aug_flag=False, weight_decay=1e-5, optim_ada=True, save_dir=save_dir)
+                             lr=lr, num_epoch=60, batch_size=batch_size, output_name=output_name,
+                             extra_aug_flag=False, weight_decay=1e-4, optim_ada=True, save_dir=save_dir)
         corr_save(best_auc, 0, mode='acc', save_path=f'{save_dir}/record.txt')
         best_auc_list.append(best_auc)
         # Step. 4 Load the weights and predict
@@ -78,7 +78,7 @@ def main_process(data_dir='', target_category=['EAC', 'ATL'],
 
 
 if __name__ == '__main__':
-    task_zoo = [['CSA']]#, ['EAC'], ['EAC', 'ATL'], ['CSA', 'ATL']]
+    task_zoo = [['CSA'], ['EAC'], ['EAC', 'ATL'], ['CSA', 'ATL']]
     model_zoo = ['convsharevit']#, 'vit', 'mobilevit', 'mobilenet']
     for task in task_zoo:
         for model_counter in model_zoo:

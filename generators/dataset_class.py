@@ -7,7 +7,7 @@ from generators.init_utils.split_saver import split_saver
 from dataset.datasets import ESMIRADataset2D
 from torch.utils.data import Dataset
 from typing import Union, Tuple
-from torchvision import transforms
+# from torchvision import transforms
 import pickle
 import pandas as pd
 
@@ -107,7 +107,35 @@ class ESMIRA_generator:
         return return_list
 
 
-    def returner(self, phase:str='train', fold_order:int=0, mean_std:bool=False) ->Tuple[Union[None, Dataset], Dataset]:
+    def returner(self, phase:str='train', fold_order:int=0, mean_std:bool=False, monai:bool=True) ->Tuple[Union[None, Dataset], Dataset]:
+        if monai:
+            from monai import transforms
+            transform = [transforms.Compose([
+                                            # transforms.RandGaussianNoise(0.2, 0, 0.1),
+                                            transforms.RandFlip(0.5, 0),
+                                            transforms.RandRotate((10), prob=0.5),
+                                            transforms.RandAffine(prob=1.0, translate_range=(20, 20)),
+                                            # transforms.RandShiftIntensity(offsets=0.1, safe=True, prob=0.2),
+                                            # transforms.RandStdShiftIntensity(factors=0.1, prob=0.2),
+                                            # transforms.RandBiasField(degree=2, coeff_range=(0, 0.1), prob=0.2),
+                                            # transforms.RandAdjustContrast(prob=0.5, gamma=(0.9, 1.1)),
+                                            transforms.RandHistogramShift(num_control_points=10, prob=0.2),
+                                            transforms.RandZoom(prob=0.3, min_zoom=0.9, max_zoom=1.0, keep_size=True)
+                                            ]),
+                        transforms.Compose([
+                                            transforms.RandAffine(prob=0.0, translate_range=(20, 20)),
+                                            ]),
+                            ]           
+        else:
+            from torchvision import transforms
+            transform = [transforms.Compose([transforms.RandomHorizontalFlip(0.5),
+                                            transforms.RandomRotation((10),),
+                                            transforms.RandomAffine(degrees=0, translate=(0.05, 0.05), scale=(1, 1), shear=None, fill=0),
+                                        ]),  
+                        transforms.Compose([
+                                        transforms.RandomAffine(degrees=0, translate=(0.05, 0.05), scale=(1, 1), shear=None, fill=0),
+                                        ])]
+
         if phase=='train':
             target_train_dict, target_val_dict = split_definer(self.target_split, fold_order) 
             # {'EAC_XXX_XXX':[4*LIST--subname+names.mha:10to15:1], 'EAC_XXX_XXX':[4*LIST--subname+names.mha:10to15:1], ...}
@@ -121,23 +149,12 @@ class ESMIRA_generator:
             val_dict = balancer(target_val_dict, atlas_val_dict, self.target_category)
             # {'site_dirc':[LIST(Target+Atlas): subdir\names.mha:cs:label ], ...}
             
-            transform = transforms.Compose([
-                                            transforms.RandomHorizontalFlip(0.5),
-                                            transforms.RandomRotation((10),),
-                                            transforms.RandomAffine(0, translate=(0.05, 0), scale=(1, 1), shear=None, fill=0),
-                                        ]) 
-            val_transform = transforms.Compose([
-                                            transforms.RandomAffine(0, translate=(0.05, 0), scale=(1, 1), shear=None, fill=0),
-                                        ])
-            train_dataset = ESMIRADataset2D(self.data_root,train_dict, transform, mean_std)
-            val_dataset = ESMIRADataset2D(self.data_root, val_dict, val_transform, mean_std)
+            train_dataset = ESMIRADataset2D(self.data_root,train_dict, transform[0], mean_std)
+            val_dataset = ESMIRADataset2D(self.data_root, val_dict, transform[1], mean_std)
         else:
             target_val_dict = val_split_definer(self.target_split)
             atlas_val_dict = val_split_definer(self.atlas_split)
             val_dict = balancer(target_val_dict, atlas_val_dict, self.target_category)
-            val_transform = transforms.Compose([
-                                            transforms.RandomAffine(0, translate=(0.05, 0), scale=(1, 1), shear=None, fill=0),
-                                        ]) 
-            val_dataset = ESMIRADataset2D(self.data_root, val_dict, val_transform, mean_std)
+            val_dataset = ESMIRADataset2D(self.data_root, val_dict, transform[1], mean_std)
             train_dataset = None
         return train_dataset, val_dataset  # [N*5, 512, 512] + int(label)

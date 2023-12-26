@@ -95,7 +95,7 @@ def train(model, dataset, val_dataset, lr=0.0001, num_epoch:int=100, batch_size:
     
     for epoch in range(1, num_epoch + 1):
         train_loss = train_step(model, optimizer, criterion, dataloader, extra_aug_flag, epoch)
-        print(train_loss)
+        print('train loss: ', train_loss)
         if epoch % 50 == 0:
             print(f"Loss at epoch {epoch} is {train_loss}")
         G,P = predict(model, val_dataloader)
@@ -103,6 +103,8 @@ def train(model, dataset, val_dataset, lr=0.0001, num_epoch:int=100, batch_size:
         auc = roc_auc_score(G, P)
         # fpr, tpr, thresholds = roc_curve(G, P)
         f1_scores = f1_score(G, P)
+
+        val_loss = criterion(torch.Tensor(P), torch.Tensor(G)).item()
             
         if auc > max_metric and train_loss<=0.67:
             max_metric = auc
@@ -111,11 +113,14 @@ def train(model, dataset, val_dataset, lr=0.0001, num_epoch:int=100, batch_size:
             print("saving best model with auc: ", auc)
             auc_save(max_metric, epoch, save_path=f'{save_dir}/record.txt')
             auc_save(f1_scores, epoch, save_path=f'{save_dir}/record.txt', mode='f1')
+            auc_save(train_loss, epoch, save_path=f'{save_dir}/record.txt', mode='train loss')
+            auc_save(val_loss, epoch, save_path=f'{save_dir}/record.txt', mode='val loss')
         else:
             print('auc:',auc)
             if not optim_ada:
                 scheduler.step()
         print('f1:', f1_scores)
+        print('val loss:', val_loss)
 
         if epoch >20 and recorded_flag==False:
             recorded_flag = True
