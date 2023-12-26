@@ -8,6 +8,7 @@ from myutils.output_finder import output_finder
 from torchvision.models import MobileNetV2
 from models.vit import ViT
 from models.mobilevit import mobilevit_s, mobilevit_xs, mobilevit_xxs
+from models.convsharevit import make_csvmodel
 from myutils.record import record_save, corr_save, auc_save
 import os
 
@@ -51,6 +52,9 @@ def main_process(data_dir='', target_category=['EAC', 'ATL'],
             model = ModelClass(in_channel, num_classes=2)
             batch_size = 6
             lr = 0.00005
+        elif model_counter == 'convsharevit':
+            model = make_csvmodel(img_2dsize=(512, 512), inch=20, num_classes=2, 
+                  groups=4, width=1, dsconv=False, parallel=False, patch_size=(2,2))
         else:
             raise ValueError('not supported model')
 
@@ -72,8 +76,8 @@ def main_process(data_dir='', target_category=['EAC', 'ATL'],
 
 
 if __name__ == '__main__':
-    task_zoo = [['CSA'], ['EAC'], ['EAC', 'ATL'], ['CSA', 'ATL']]
-    model_zoo = ['', 'vit', 'mobilevit', 'mobilenet']
+    task_zoo = [['CSA']]#, ['EAC'], ['EAC', 'ATL'], ['CSA', 'ATL']]
+    model_zoo = ['convsharevit']#, 'vit', 'mobilevit', 'mobilenet']
     for task in task_zoo:
         for model_counter in model_zoo:
             main_process(data_dir='D:\\ESMIRA\\ESMIRA_common',  target_category=task, 

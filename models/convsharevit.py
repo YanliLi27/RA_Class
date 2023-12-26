@@ -151,8 +151,8 @@ class ConvShareViT(nn.Module):
 
 
 def make_csvmodel(img_2dsize=(512, 512), inch=20, num_classes=2, 
-                  groups=4, width=1, dsconv=False, expansion=4,  # conv
-                  dims:list=[6,3], depth_trans:list=[6,3], patch_size=(2,2)):
+                  groups=4, width=1, dsconv=False, 
+                  parallel=False, patch_size=(2,2)):
     block_setting = [
                 # block('c' for conv), out_channels, kernal_size, stride, groups, num of blocks, expansion(only for dsconv)
                 # block('t' for vit), out_channels, kernel_size, patch_size, groups, depth, mlp_dim(like the expansion)
@@ -165,10 +165,10 @@ def make_csvmodel(img_2dsize=(512, 512), inch=20, num_classes=2,
                 ['t', 160, 3, 1, 4, 3, 640],  # vit # B, 4*C, L/16(32), W/16(32) -> B, 4*C, L/16(32), W/16(32)
                 ['c', 160, 3, 1, 4, 1, 0],  # one layer of conv
             ]
-    return ConvShareViT(img_2dsize, inch, num_classes=2, groups=4, width=1,# basic
-                 dsconv=False, parallel=False, # module type
+    return ConvShareViT(img_2dsize, inch, num_classes=num_classes, groups=groups, width=width,# basic
+                 dsconv=dsconv, parallel=parallel, # module type
                  block_setting=block_setting,
-                 patch_size=(2, 2),  # vit
+                 patch_size=patch_size,  # vit
                  initialization=False
                  )
 
