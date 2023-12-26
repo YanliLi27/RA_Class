@@ -48,19 +48,24 @@ def train_step(model, optimizer, criterion, train_loader, extra_aug_flag:bool=Fa
     return sum(avg_loss)/len(avg_loss)
 
 
-def predict(model, test_loader, device = torch.device("cuda" if torch.cuda.is_available() else "cpu")):
+def predict(model, test_loader, criterion=None, device = torch.device("cuda" if torch.cuda.is_available() else "cpu")):
+    if criterion is None:
+        criterion = nn.CrossEntropyLoss()
     model.eval()
     total_preds = torch.Tensor()
     total_labels = torch.Tensor()
+    avg_loss = []
     with torch.no_grad():
         for x,y in tqdm(test_loader):
             x = x.to(device)
             y = y.to(device)
             pred = model(x)
+            loss = criterion(pred, y)
+            avg_loss.append(loss.item())
             y_pred = torch.argmax(pred, dim=1)
             total_preds = torch.cat((total_preds, y_pred.cpu()), 0)
             total_labels = torch.cat((total_labels, y.cpu()), 0)
-    return total_labels.numpy().flatten(),total_preds.numpy().flatten()
+    return total_labels.numpy().flatten(),total_preds.numpy().flatten(), sum(avg_loss)/len(avg_loss)
 
 
 def train(model, dataset, val_dataset, lr=0.0001, num_epoch:int=100, batch_size:int=10, 
@@ -98,23 +103,21 @@ def train(model, dataset, val_dataset, lr=0.0001, num_epoch:int=100, batch_size:
         print('train loss: ', train_loss)
         if epoch % 50 == 0:
             print(f"Loss at epoch {epoch} is {train_loss}")
-        G,P = predict(model, val_dataloader)
+        G,P, val_loss = predict(model, val_dataloader, criterion)
         # accuracy = accuracy_score(G, P)
         auc = roc_auc_score(G, P)
         # fpr, tpr, thresholds = roc_curve(G, P)
         f1_scores = f1_score(G, P)
-
-        val_loss = criterion(torch.Tensor(P), torch.Tensor(G)).item()
             
         if auc > max_metric and train_loss<=0.67:
             max_metric = auc
             recorded_flag = True
             torch.save(model.state_dict(), model_file_name)
             print("saving best model with auc: ", auc)
-            auc_save(max_metric, epoch, save_path=f'{save_dir}/record.txt')
-            auc_save(f1_scores, epoch, save_path=f'{save_dir}/record.txt', mode='f1')
             auc_save(train_loss, epoch, save_path=f'{save_dir}/record.txt', mode='train loss')
             auc_save(val_loss, epoch, save_path=f'{save_dir}/record.txt', mode='val loss')
+            auc_save(f1_scores, epoch, save_path=f'{save_dir}/record.txt', mode='f1')
+            auc_save(max_metric, epoch, save_path=f'{save_dir}/record.txt')
         else:
             print('auc:',auc)
             if not optim_ada:
@@ -126,8 +129,10 @@ def train(model, dataset, val_dataset, lr=0.0001, num_epoch:int=100, batch_size:
             recorded_flag = True
             print('save for compare')
             max_metric = auc
-            auc_save(max_metric, epoch, save_path=f'{save_dir}/record.txt')
+            auc_save(train_loss, epoch, save_path=f'{save_dir}/record.txt', mode='train loss')
+            auc_save(val_loss, epoch, save_path=f'{save_dir}/record.txt', mode='val loss')
             auc_save(f1_scores, epoch, save_path=f'{save_dir}/record.txt', mode='f1')
+            auc_save(max_metric, epoch, save_path=f'{save_dir}/record.txt')
     return max_metric
             
             

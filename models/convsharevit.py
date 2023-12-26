@@ -155,7 +155,7 @@ class ConvShareViT(nn.Module):
 
 def make_csvmodel(img_2dsize=(512, 512), inch=20, num_classes=2, 
                   groups=4, width=1, dsconv=False, 
-                  parallel=False, patch_size=(2,2)):
+                  parallel=False, patch_size=(2,2), init:bool=False):
     block_setting = [
                 # block('c' for conv), out_channels, kernal_size, stride, groups, num of blocks, expansion(only for dsconv)
                 # block('t' for vit), out_channels, kernel_size, patch_size, groups, depth, mlp_dim(like the expansion)
@@ -172,7 +172,7 @@ def make_csvmodel(img_2dsize=(512, 512), inch=20, num_classes=2,
                  dsconv=dsconv, parallel=parallel, # module type
                  block_setting=block_setting,
                  patch_size=patch_size,  # vit
-                 initialization=False
+                 initialization=init
                  )
 
 def count_parameters(model):

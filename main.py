@@ -54,7 +54,7 @@ def main_process(data_dir='', target_category=['EAC', 'ATL'],
             lr = 0.00005
         elif model_counter == 'convsharevit':
             model = make_csvmodel(img_2dsize=(512, 512), inch=20, num_classes=2, 
-                  groups=4, width=1, dsconv=False, parallel=False, patch_size=(4,4))
+                  groups=4, width=1, dsconv=False, parallel=False, patch_size=(4,4), init=False)
             batch_size = 10
             lr = 0.00005
         else:
@@ -71,7 +71,7 @@ def main_process(data_dir='', target_category=['EAC', 'ATL'],
         # Step. 4 Load the weights and predict
         model = pretrained(model=model, output_name=output_name)
         val_dataloader = DataLoader(val_dataset, batch_size=10, shuffle=False, num_workers=4)
-        G,P = predict(model, val_dataloader)
+        G,P, _ = predict(model, val_dataloader)
         print(classification_report(G,P))
         print(roc_auc_score(G,P))
     print(best_auc_list)

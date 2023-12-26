@@ -32,7 +32,7 @@ def auc_save(metric1, epoch, save_path:str='./models/figs/record.txt', mode:str=
         F.write('\n')
         F.write(f'{mode}: {str(metric1)}')
         F.write('\n')
-        if mode!='auc':
+        if mode=='auc':
             F.write('---------------- Next ------------------')
     print(f'record saved with best {mode}: {metric1}')
 
