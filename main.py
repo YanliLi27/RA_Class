@@ -78,7 +78,7 @@ def main_process(data_dir='', target_category=['EAC', 'ATL'],
 
 
 if __name__ == '__main__':
-    task_zoo = [['CSA', 'ATL'],]#['CSA'], ['EAC'], ['EAC', 'ATL'], ]
+    task_zoo = [['CSA'], ['EAC'], ['EAC', 'ATL'], ['CSA', 'ATL'],]# ]
     model_zoo = ['convsharevit']#, 'vit', 'mobilevit', 'mobilenet']
     for task in task_zoo:
         for model_counter in model_zoo:

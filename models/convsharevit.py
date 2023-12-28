@@ -140,16 +140,16 @@ class ConvShareViT(nn.Module):
         self.protofeature = nn.Linear(last_channel, num_features+extension, bias=False)
 
         if dropout:
-            self.fc = nn.Sequential[
+            self.fc = nn.Sequential(
                 nn.SiLU(True),
                 nn.Dropout(0.3),
                 nn.Linear(num_features+extension, num_classes, bias=False)
-            ]
+            )
         else:
-            self.fc = nn.Sequential[
+            self.fc = nn.Sequential(
                 nn.SiLU(True),
                 nn.Linear(num_features+extension, num_classes, bias=False)
-            ]
+            )
         
 
         if initialization:
