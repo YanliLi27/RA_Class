@@ -17,10 +17,14 @@ from typing import Callable, Any, Optional, List, Union
 
 
 class ConvShareViT(nn.Module):
-    def __init__(self, image_size, in_ch:int, num_classes:int=2, groups:int=4, width:int=1,# basic
+    def __init__(self, image_size, in_ch:int, num_classes:int=2,  # dataset related
+                 num_features:int=43, extension:int=0,  # intermediate related
+                 groups:int=4, width:int=1,# basic
                  dsconv:bool=False, parallel:bool=False, # module type
                  block_setting:Optional[List[List]] = None,
                  patch_size:Union[list,tuple,int]=(2, 2),  # vit
+                 mode_feature:bool=True, #
+                 dropout:bool=True,
                  initialization:bool=False
                  ):
         super().__init__()
@@ -60,6 +64,8 @@ class ConvShareViT(nn.Module):
         groups:(groups for end convolution)
         dropout
         '''
+        self.mode = mode_feature
+        self.num_features = num_features
         # vit setting: --------------------------------------------------------------------------------------------#
         ih, iw = image_size
         if type(patch_size)==list or type(patch_size)==tuple:
@@ -128,8 +134,23 @@ class ConvShareViT(nn.Module):
         )
         self.features = nn.Sequential(*features)
 
-        self.pool = nn.AdaptiveAvgPool2d((1,1))
-        self.fc = nn.Linear(last_channel, num_classes, bias=False)
+        self.pool = nn.AdaptiveAvgPool2d((1,1))  # B, 4*C, 1, 1
+
+        # not sure
+        self.protofeature = nn.Linear(last_channel, num_features+extension, bias=False)
+
+        if dropout:
+            self.fc = nn.Sequential[
+                nn.SiLU(True),
+                nn.Dropout(0.3),
+                nn.Linear(num_features+extension, num_classes, bias=False)
+            ]
+        else:
+            self.fc = nn.Sequential[
+                nn.SiLU(True),
+                nn.Linear(num_features+extension, num_classes, bias=False)
+            ]
+        
 
         if initialization:
                     # weight initialization
@@ -149,13 +170,19 @@ class ConvShareViT(nn.Module):
     def forward(self, x):
         x = self.features(x)
         x = self.pool(x).view(-1, x.shape[1])
-        x = self.fc(x)
-        return x
+        x = self.protofeature(x)
+        if self.mode:
+            return x[:self.num_features]
+        else:
+            x = self.fc(x)
+            return x
 
 
 def make_csvmodel(img_2dsize=(512, 512), inch=20, num_classes=2, 
+                  num_features=43, extension=157,
                   groups=4, width=1, dsconv=False, 
-                  parallel=False, patch_size=(2,2), init:bool=False):
+                  parallel=False, patch_size=(2,2), 
+                  mode_feature:bool=False, dropout:bool=True, init:bool=False):
     block_setting = [
                 # block('c' for conv), out_channels, kernal_size, stride, groups, num of blocks, expansion(only for dsconv)
                 # block('t' for vit), out_channels, kernel_size, patch_size, groups, depth, mlp_dim(like the expansion)
@@ -168,12 +195,16 @@ def make_csvmodel(img_2dsize=(512, 512), inch=20, num_classes=2,
                 ['t', 160, 3, 1, 4, 3, 640],  # vit # B, 4*C, L/16(32), W/16(32) -> B, 4*C, L/16(32), W/16(32)
                 ['c', 160, 3, 1, 4, 1, 0],  # one layer of conv
             ]
-    return ConvShareViT(img_2dsize, inch, num_classes=num_classes, groups=groups, width=width,# basic
-                 dsconv=dsconv, parallel=parallel, # module type
-                 block_setting=block_setting,
-                 patch_size=patch_size,  # vit
-                 initialization=init
-                 )
+    return ConvShareViT(img_2dsize, inch, num_classes=num_classes, 
+                        num_features=num_features, extension=extension,
+                        groups=groups, width=width,# basic
+                        dsconv=dsconv, parallel=parallel, # module type
+                        block_setting=block_setting,
+                        patch_size=patch_size,  # vit
+                        mode_feature=mode_feature,
+                        dropout=dropout,
+                        initialization=init
+                        )
 
 def count_parameters(model):
     return sum(p.numel() for p in model.parameters() if p.requires_grad)

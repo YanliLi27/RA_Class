@@ -53,8 +53,8 @@ def main_process(data_dir='', target_category=['EAC', 'ATL'],
             batch_size = 6
             lr = 0.00005
         elif model_counter == 'convsharevit':
-            model = make_csvmodel(img_2dsize=(512, 512), inch=20, num_classes=2, 
-                  groups=4, width=1, dsconv=False, parallel=False, patch_size=(4,4), init=False)
+            model = make_csvmodel(img_2dsize=(512, 512), inch=20, num_classes=2, num_features=43, extension=157, 
+                  groups=4, width=1, dsconv=False, parallel=False, patch_size=(4,4), mode_feature=False, dropout=True, init=False)
             batch_size = 10
             lr = 0.00005
         else:
@@ -78,7 +78,7 @@ def main_process(data_dir='', target_category=['EAC', 'ATL'],
 
 
 if __name__ == '__main__':
-    task_zoo = [['CSA'], ['EAC'], ['EAC', 'ATL'], ['CSA', 'ATL']]
+    task_zoo = [['CSA', 'ATL'],]#['CSA'], ['EAC'], ['EAC', 'ATL'], ]
     model_zoo = ['convsharevit']#, 'vit', 'mobilevit', 'mobilenet']
     for task in task_zoo:
         for model_counter in model_zoo:
