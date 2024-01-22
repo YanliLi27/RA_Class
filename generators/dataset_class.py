@@ -48,6 +48,8 @@ class ESMIRA_generator:
             # {'EAC_Wrist_TRA':[LIST-'Names_label.mha:10to15'], ..., 'CSA_MCP_COR':[LIST-'Names_label.mha:8to13'], ...}
             with open(self.default_cs_path, "wb") as tf:
                 pickle.dump(self.common_cs_dict, tf)
+            df = pd.DataFrame(self.common_cs_dict)
+            df.to_csv(path_or_buf=self.default_cs_path('.pkl', '.csv'))
 
         # --------------------------------------------------------main generator-------------------------------------------------------- #
         # input selection:
