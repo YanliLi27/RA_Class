@@ -72,7 +72,7 @@ def central_selector(datapath:str)->str:
         oa2 = list(np.asarray(square_oa2) + np.asarray(hist_oa2))
         max_range2 = oa2.index(min(oa2))
 
-    userange = f':{max_range}to{max_range+5}plus{max_range2}to{max_range2+10}'
+    userange = f':{max_range}to{max_range+5}plus{max_range2}to{max_range2+7}'
     return userange  # 返回一个范围的上下限，然后用':10to15plus5to15'来保存
     
 

@@ -51,13 +51,13 @@ def class_generator(common_dict:dict, target_category:list) ->dict:
     # atlas_split = {'ATL_XXX_XXX':[LIST--subname+names.mha:10to15:0], ...}
 
 
-def split_generator(target_split:dict, random:bool=True) ->dict:
+def split_generator(target_split:dict, random:bool=True, maxfold:int=5) ->dict:
     # target_split = {'EAC_XXX_XXX':[LIST--subname+names.mha:10to15:1], 'EAC_XXX_XXX':[LIST--subname+names.mha:10to15:1], ...}
     if random:
         for key in target_split.keys():
             indiv_split = []
             list_key = target_split[key]  # [LIST]
-            kf = KFold(n_splits=5, shuffle=True)
+            kf = KFold(n_splits=maxfold, shuffle=True)
             for train_index, val_index in kf.split(range(len(list_key))):
                 # val_index -- the index of ids in list_key
                 indiv_split.append(np.array(list_key)[val_index])  # [5* [LIST]]
@@ -68,9 +68,9 @@ def split_generator(target_split:dict, random:bool=True) ->dict:
             indiv_split = []
             list_key = target_split[key]  # [LIST]
             length_data = len(list_key)
-            num_per_fold = length_data//5
-            for fold in range(5):
-                if fold<4:
+            num_per_fold = length_data//maxfold
+            for fold in range(maxfold):
+                if fold<(maxfold-1):
                     indiv_split.append(np.array(list_key)[fold*num_per_fold:(fold+1)*num_per_fold])
                 else:
                     indiv_split.append(np.array(list_key)[fold*num_per_fold:])

@@ -14,7 +14,7 @@ import pandas as pd
 
 class ESMIRA_generator:
     def __init__(self, data_root:str, target_category:list=['EAC', 'ATL'], target_site:list=['Wrist'],
-                 target_dirc:list=['TRA', 'COR']) ->None:
+                 target_dirc:list=['TRA', 'COR'], maxfold:int=5) ->None:
         # The common ids: common_list is the dict of EAC/CSA/ATL, that patients exist in all target_site
         # {'EAC':[LIST], 'CSA':[LIST], 'ATL':[LIST]}
         self.data_root = data_root
@@ -75,8 +75,8 @@ class ESMIRA_generator:
             # atlas_split -- {'ATL_XXX_XXX':[LIST--subname+names.mha:10to15:label], ...}
 
             # in each sub-list 'Cate_XXX_XXX', split into 5 fold:
-            self.target_split = split_generator(self.target_split)
-            self.atlas_split = split_generator(self.atlas_split)
+            self.target_split = split_generator(self.target_split, random=True, maxfold=maxfold)
+            self.atlas_split = split_generator(self.atlas_split, random=True, maxfold=maxfold)
             # {'EAC_XXX_XXX':[5*[LIST--subname+names.mha:10to15:1]], 'EAC_XXX_XXX':[5*[LIST--subname+names.mha:10to15:1]], ...}
             # {'ATL_XXX_XXX':[5*[LIST--subname+names.mha:10to15:0]], 'ATL_XXX_XXX':[5*[LIST--subname+names.mha:10to15:0]], ...}
             with open(self.repr_target_split_path, "wb") as tf:
