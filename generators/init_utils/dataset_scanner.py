@@ -8,6 +8,7 @@ def _id_finder(names:list) ->list:
         # name = 'ESMIRA-LUMC-Csa842_CSA-20210505-RightMCP_PostTRAT1f_0.mha'
         namelist = name.split('-')  # namelist = ['ESMIRA', 'LUMC', 'Csa842_CSA', '20210505', 'RightMCP_PostTRAT1f_0.mha']
         ids.append(namelist[2])  # add 'Csa842_CSA'
+    ids = list(set(ids))
     return ids # list of ids 
 
 
@@ -24,7 +25,7 @@ def _common_list_generator(init_dict:dict) ->dict:
         if key_group not in groups:
             groups.append(key_group)   
     # groups = ['EAC', 'CSA', 'ATL']
-    assert len(groups)==3  # TODO for now, only 3
+    assert len(groups)<=3  # TODO for now, only 3
     for group in groups:
         group_id_list = []
         # 'EAC' as example,
@@ -37,8 +38,8 @@ def _common_list_generator(init_dict:dict) ->dict:
     return common_list  # {'EAC':[LIST], 'CSA':[LIST], 'ATL':[LIST]}
 
 
-def _common_list_finder(init_dict:dict) ->dict:
-    dict_path = './dataset/dicts/common_ids.pkl'
+def _common_list_finder(init_dict:dict, data_root:str='') ->dict:
+    dict_path = f'./dataset/dicts/{data_root[-4:]}_common_ids.pkl'
     if os.path.isfile(dict_path):
         with open(dict_path, "rb") as tf:
             common_list = pickle.load(tf)
@@ -51,8 +52,9 @@ def _common_list_finder(init_dict:dict) ->dict:
     return common_list
 
 
-def ESMIRA_scanner(data_root:str) ->dict:
-    target_category = ['EAC', 'CSA', 'ATL']
+def ESMIRA_scanner(data_root:str, target_category:list) ->dict:
+    if not target_category:
+        target_category = ['EAC', 'CSA', 'ATL']
     target_site = ['Wrist', 'MCP', 'Foot']
     target_dirc = ['TRA', 'COR']
     # scan the data_root and got all the names with keys
@@ -68,7 +70,7 @@ def ESMIRA_scanner(data_root:str) ->dict:
                 print(f'-- {dict_key} id finished --')
     # init_dict{'EAC_Wrist_TRA':idlist, ...}
     # find the common list of sites:
-    common_list = _common_list_finder(init_dict)  # {'EAC':[LIST], 'CSA':[LIST], 'ATL':[LIST]}
+    common_list = _common_list_finder(init_dict, data_root=data_root)  # {'EAC':[LIST], 'CSA':[LIST], 'ATL':[LIST]}
     return common_list
 
 

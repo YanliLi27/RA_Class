@@ -1,4 +1,4 @@
-def split_saver(target_category:list, target_site:list, target_dirc:list, target_flag:bool=True)->str:
+def split_saver(data_root:str, target_category:list, target_site:list, target_dirc:list, target_flag:bool=True)->str:
     cate_name = ''
     for cate in target_category:
         cate_name = cate_name + cate + '_'
@@ -15,5 +15,5 @@ def split_saver(target_category:list, target_site:list, target_dirc:list, target
         target_name = 1
     else:
         target_name = 0
-    output_name = "./dataset/logs/{}_{}_{}_{}.pkl".format(cate_name, site_name, dirc_name, target_name)
+    output_name = "./dataset/logs/{}_{}_{}_{}_{}.pkl".format(data_root, cate_name, site_name, dirc_name, target_name)
     return output_name

@@ -19,37 +19,38 @@ class ESMIRA_generator:
         # {'EAC':[LIST], 'CSA':[LIST], 'ATL':[LIST]}
         self.data_root = data_root
         self.target_category = target_category
-        self.default_id_path = './dataset/dicts/id_list.pkl'
+        self.default_id_path = f'./dataset/dicts/{data_root[-4:]}_id_list.pkl'
         if os.path.isfile(self.default_id_path):
             with open(self.default_id_path, "rb") as tf:
                 self.common_dict = pickle.load(tf)
         else:
-            self.common_dict = ESMIRA_scanner(self.data_root)  # {'EAC':[LIST], 'CSA':[LIST], 'ATL':[LIST]} [LIST] -- ['Csa842_CSA', ...]
+            self.common_dict = ESMIRA_scanner(self.data_root, target_category)  # {'EAC':[LIST], 'CSA':[LIST], 'ATL':[LIST]} [LIST] -- ['Csa842_CSA', ...]
             # EACNUMM	MRI_T1	MRIdate_T1	MRI_T2	MRIdate_T2	MRI_T4	MRIdate_T4	MRI_T6	MRIdate_T6	RA_baseline	RA_1yr	658	112	770
             # path: D:\ESMIRA\SPSS data\Copy of EAC RAdiags excel_changeInRA.xlsx
             # create an id list
-            target_id_lsit = self._id_finder_eac(path='D:\\ESMIRA\\SPSS data\\Copy of EAC RAdiags excel_changeInRA.xlsx')
-            self.common_dict['EAC'] = self._id_filter_eac(self.common_dict['EAC'], target_id_lsit)
+            if 'EAC' in target_category:
+                target_id_lsit = self._id_finder_eac(path='D:\\ESMIRA\\SPSS data\\Copy of EAC RAdiags excel_changeInRA.xlsx')
+                self.common_dict['EAC'] = self._id_filter_eac(self.common_dict['EAC'], target_id_lsit)
 
             with open(self.default_id_path, "wb") as tf:
                 pickle.dump(self.common_dict, tf)
             
         
         # calculate the central slices
-        self.default_cs_path = './dataset/dicts/name2central_list.pkl'
+        self.default_cs_path = f'./dataset/dicts/{data_root[-4:]}_name2central_list.pkl'
         if os.path.isfile(self.default_cs_path):
             with open(self.default_cs_path, "rb") as tf:
                 self.common_cs_dict = pickle.load(tf)
             print('saved dataset+central slice dict:{}'.format(self.common_cs_dict.keys()))
             print('--------found saved info--------')
         else:
-            self.common_cs_dict = central_slice_generator(self.data_root, self.common_dict)
+            self.common_cs_dict = central_slice_generator(self.data_root, self.common_dict, target_category)
             # From now, no more ids, but the specific name and path /此处开始不再是ids，而是具体的名称和路径
             # {'EAC_Wrist_TRA':[LIST-'Names_label.mha:10to15'], ..., 'CSA_MCP_COR':[LIST-'Names_label.mha:8to13'], ...}
             with open(self.default_cs_path, "wb") as tf:
                 pickle.dump(self.common_cs_dict, tf)
             df = pd.DataFrame(self.common_cs_dict)
-            df.to_csv(path_or_buf=self.default_cs_path('.pkl', '.csv'))
+            df.to_csv(path_or_buf=self.default_cs_path.replace('.pkl', '.csv'))
 
         # --------------------------------------------------------main generator-------------------------------------------------------- #
         # input selection:
@@ -59,8 +60,8 @@ class ESMIRA_generator:
         # common_cs_dict  {'EAC_Wrist_TRA':[LIST-'Names_label.mha:10to15'], 'ATL_Wrist_TRA':[LIST-'Names_label.mha:8to13']}
 
 
-        self.repr_target_split_path = split_saver(target_category, target_site, target_dirc, True)
-        self.repr_atlas_split_path = split_saver(target_category, target_site, target_dirc, False)
+        self.repr_target_split_path = split_saver(data_root[-4:], target_category, target_site, target_dirc, True)
+        self.repr_atlas_split_path = split_saver(data_root[-4:], target_category, target_site, target_dirc, False)
         if os.path.isfile(self.repr_target_split_path) and os.path.isfile(self.repr_atlas_split_path):
             with open(self.repr_target_split_path, "rb") as tf:
                 self.target_split = pickle.load(tf)

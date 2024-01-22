@@ -37,7 +37,7 @@ def _square_selector(data:np.array)->str:  # data: [20, 512, 512]
         nonzero_mask[c] = binary_fill_holes(nonzero_mask[c])  # 输入数据已经是处理后的数据了，此时无需再使用图形学
         value_in_mask.append(np.sum(nonzero_mask[c]))
     max_range, oa = _central_n_slices(value_in_mask, num=5)
-    max_range2, oa2 = _central_n_slices(value_in_mask, num=10)
+    max_range2, oa2 = _central_n_slices(value_in_mask, num=7)
     return max_range, max_range2, oa, oa2
 
 
@@ -49,7 +49,7 @@ def _hist_selector(data:np.array)->str:  # data: [20, 512, 512]
         hist, _ = np.histogram(data[c], bins=20, range=(0,1))
         value_in_mask.append(-np.std(hist))  # 取std作为均衡化的标准，越小越好因此取负值
     max_range, oa = _central_n_slices(value_in_mask, num=5)
-    max_range2, oa2 = _central_n_slices(value_in_mask, num=10)
+    max_range2, oa2 = _central_n_slices(value_in_mask, num=7)
     return max_range, max_range2, oa, oa2
 
 
@@ -63,23 +63,26 @@ def central_selector(datapath:str)->str:
     if square_mr==hist_mr:
         max_range = square_mr
     else:
-        oa = np.asarray(square_oa) + np.asarray(hist_oa)
+        oa = list(np.asarray(square_oa) + np.asarray(hist_oa))
         max_range = oa.index(min(oa))
     
     if square_mr2==hist_mr2:
         max_range2 = square_mr2
     else:
-        oa2 = np.asarray(square_oa2) + np.asarray(hist_oa2)
+        oa2 = list(np.asarray(square_oa2) + np.asarray(hist_oa2))
         max_range2 = oa2.index(min(oa2))
 
     userange = f':{max_range}to{max_range+5}plus{max_range2}to{max_range2+10}'
     return userange  # 返回一个范围的上下限，然后用':10to15plus5to15'来保存
     
 
-def central_slice_generator(data_root:str, common_list:dict)->dict:
+def central_slice_generator(data_root:str, common_list:dict, target_category:list)->dict:
     # common_list is the dict of EAC/CSA/ATL - of all Wrist/MCP/Foot, that patients exist in all target_site,
     # {'EAC':[LIST], 'CSA':[LIST], 'ATL':[LIST]}
-    default_target_category = ['EAC', 'CSA', 'ATL']
+    if not target_category:
+        default_target_category = ['EAC', 'CSA', 'ATL']
+    else:
+        default_target_category = target_category
     default_target_site = ['Wrist', 'MCP', 'Foot']
     default_target_dirc = ['TRA', 'COR']
     cs_dict = {}  # save the {'EAC_Wrist_TRA':[LIST-'Names_label.mha:CentralSlice'], ..., 'CSA_MCP_COR':[LIST-'Names_label.mha:CentralSlice'], ...}

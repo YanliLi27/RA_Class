@@ -21,6 +21,7 @@ class ESMIRADataset2D(data.Dataset):
         self.mean_std = mean_std
         if isinstance(full_img, int):
             self.slices = full_img
+            assert self.slices in [5, 7]
             self.full_img = False
         else:
             self.full_img = full_img
