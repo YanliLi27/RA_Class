@@ -107,7 +107,8 @@ class ESMIRA_generator:
         return return_list
 
 
-    def returner(self, phase:str='train', fold_order:int=0, mean_std:bool=False, monai:bool=True) ->Tuple[Union[None, Dataset], Dataset]:
+    def returner(self, phase:str='train', fold_order:int=0, mean_std:bool=False, 
+                 monai:bool=True, full_img:Union[bool, int]=5) ->Tuple[Union[None, Dataset], Dataset]:
         if monai:
             from monai import transforms
             transform = [transforms.Compose([
@@ -149,12 +150,12 @@ class ESMIRA_generator:
             val_dict = balancer(target_val_dict, atlas_val_dict, self.target_category)
             # {'site_dirc':[LIST(Target+Atlas): subdir\names.mha:cs:label ], ...}
             
-            train_dataset = ESMIRADataset2D(self.data_root,train_dict, transform[0], mean_std)
-            val_dataset = ESMIRADataset2D(self.data_root, val_dict, transform[1], mean_std)
+            train_dataset = ESMIRADataset2D(self.data_root,train_dict, transform[0], mean_std, full_img=full_img)
+            val_dataset = ESMIRADataset2D(self.data_root, val_dict, transform[1], mean_std, full_img=full_img)
         else:
             target_val_dict = val_split_definer(self.target_split)
             atlas_val_dict = val_split_definer(self.atlas_split)
             val_dict = balancer(target_val_dict, atlas_val_dict, self.target_category)
-            val_dataset = ESMIRADataset2D(self.data_root, val_dict, transform[1], mean_std)
+            val_dataset = ESMIRADataset2D(self.data_root, val_dict, transform[1], mean_std, full_img=full_img)
             train_dataset = None
         return train_dataset, val_dataset  # [N*5, 512, 512] + int(label)

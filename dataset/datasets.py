@@ -4,10 +4,11 @@ import numpy as np
 from torch.utils import data
 from skimage.transform import resize
 import torch
+from typing import Union
 
 
 class ESMIRADataset2D(data.Dataset):
-    def __init__(self, data_root:str, train_dict:dict, transform=None, mean_std:bool=False):
+    def __init__(self, data_root:str, train_dict:dict, transform=None, mean_std:bool=False, full_img:Union[bool,int]=5):
         # train_dict {'site_dirc':[LIST(Target+Atlas): subdir\names.mha:cs:label ], ...}
         self.root = data_root  # the root of data
         self.train_dict = train_dict
@@ -18,6 +19,12 @@ class ESMIRADataset2D(data.Dataset):
                 return data
             self.transform = transform
         self.mean_std = mean_std
+        if isinstance(full_img, int):
+            self.slices = full_img
+            self.full_img = False
+        else:
+            self.full_img = full_img
+            self.slices = 20
 
  
     def __len__(self):
@@ -35,16 +42,22 @@ class ESMIRADataset2D(data.Dataset):
         for key in self.train_dict.keys():
             com_info = self.train_dict[key][idx]  # 'subdir\names.mha:cs:label'
             path, cs, label = com_info.split(':')  # 'subdir\names.mha', 'cs', 'label'
-            lower, upper = cs.split('to')
+            five, ten = cs.split('plus')
+            fivelower, fiveupper = five.split('to')
+            tenlower, tenupper = ten.split('to')
+            if self.slices == 5:
+                lower, upper = fivelower, fiveupper
+            else:
+                lower, upper = tenlower, tenupper
             lower, upper = int(lower), int(upper)
             label = int(label)
             abs_path = os.path.join(self.root, path)
             data_mha = sitk.ReadImage(abs_path)
             data_array = sitk.GetArrayFromImage(data_mha)
             data_array = self._itensity_normalize(data_array[lower:upper])  # [5, 512, 512]
-            if data_array.shape != (5, 512, 512):
-                if data_array.shape == (5, 256, 256):
-                    data_array = resize(data_array, (5, 512, 512), preserve_range=True)  # preserve_range: no normalization
+            if data_array.shape != (self.slices, 512, 512):
+                if data_array.shape == (self.slices, 256, 256):
+                    data_array = resize(data_array, (self.slices, 512, 512), preserve_range=True)  # preserve_range: no normalization
                 else:
                     raise ValueError('the shape of input:{}, the id: {}, central_slice: {}'.format(data_array.shape, path, lower))
             data_matrix.append(data_array)

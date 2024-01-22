@@ -11,11 +11,12 @@ from models.mobilevit import mobilevit_s, mobilevit_xs, mobilevit_xxs
 from models.convsharevit import make_csvmodel
 from myutils.record import record_save, corr_save, auc_save
 import os
+from typing import Union
 
 
 def main_process(data_dir='', target_category=['EAC', 'ATL'], 
                  target_site=['Wrist'], target_dirc=['TRA', 'COR'], phase='train',
-                 model_counter='mobilevit', parallel:bool=False):
+                 model_counter='mobilevit', parallel:bool=False, full_img:Union[bool, int]=5):
     best_auc_list = []
     dataset_generator = ESMIRA_generator(data_dir, target_category, target_site, target_dirc)
     for fold_order in range(5):
@@ -28,7 +29,7 @@ def main_process(data_dir='', target_category=['EAC', 'ATL'],
         if not os.path.exists(save_dir):
             os.makedirs(save_dir)
 
-        train_dataset, val_dataset = dataset_generator.returner(phase=phase, fold_order=fold_order, mean_std=False)
+        train_dataset, val_dataset = dataset_generator.returner(phase=phase, fold_order=fold_order, mean_std=False, full_img=full_img)
         # input: [N*5, 512, 512] + int(label)
 
         # Step. 2 get the model: (can be any nn.Module, make sure it fit your input size and output size)
@@ -85,10 +86,10 @@ if __name__ == '__main__':
         for model_counter in model_zoo:
             if model_counter == 'convsharevit':
                 for parallel in parr_zoo:
-                    main_process(data_dir='D:\\ESMIRA\\ESMIRA_common',  target_category=task, 
+                    main_process(data_dir='D:\\ESMIRA\\CSA_resplit\\train',  target_category=task, 
                                 target_site=['Wrist','MCP'], target_dirc=['TRA', 'COR'], phase='train',
-                                model_counter=model_counter, parallel=parallel)
+                                model_counter=model_counter, parallel=parallel, full_img=5)
             else:
-                main_process(data_dir='D:\\ESMIRA\\ESMIRA_common',  target_category=task, 
+                main_process(data_dir='D:\\ESMIRA\\CSA_resplit\\train',  target_category=task, 
                             target_site=['Wrist','MCP'], target_dirc=['TRA', 'COR'], phase='train',
-                            model_counter=model_counter, parallel=False)
+                            model_counter=model_counter, parallel=False, full_img=5)
