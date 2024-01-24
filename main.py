@@ -17,8 +17,9 @@ from typing import Union
 def main_process(data_dir='', target_category=['EAC', 'ATL'], 
                  target_site=['Wrist'], target_dirc=['TRA', 'COR'], phase='train',
                  model_counter='mobilevit', parallel:bool=False, full_img:Union[bool, int]=5,
-                 maxfold:int=5):
+                 maxfold:int=5, test_dir='D:\\ESMIRA\\CSA_resplit\\test'):
     best_auc_list = []
+    best_test_list = []
     dataset_generator = ESMIRA_generator(data_dir, target_category, target_site, target_dirc, maxfold=maxfold)
     for fold_order in range(maxfold):
         save_task = target_category[0] if len(target_category)==1 else (target_category[0]+'_'+target_category[1])
@@ -34,7 +35,7 @@ def main_process(data_dir='', target_category=['EAC', 'ATL'],
         # input: [N*5, 512, 512] + int(label)
 
         # Step. 2 get the model: (can be any nn.Module, make sure it fit your input size and output size)
-        in_channel = len(target_site) * len(target_dirc) * 5
+        in_channel = len(target_site) * len(target_dirc) * full_img if isinstance(full_img, int) else len(target_site) * len(target_dirc) * 20
         # model = ModelClass(in_channel, num_classes=2)
         if model_counter == 'mobilenet':
             model = MobileNetV2(num_classes=2, inch=in_channel)
@@ -76,13 +77,24 @@ def main_process(data_dir='', target_category=['EAC', 'ATL'],
         G,P, _ = predict(model, val_dataloader)
         print(classification_report(G,P))
         print(roc_auc_score(G,P))
+
+        test_generator = ESMIRA_generator(test_dir, target_category, target_site, target_dirc, maxfold=maxfold)
+        _, test_dataset = test_generator.returner(phase='test', fold_order=fold_order, mean_std=False, full_img=full_img)
+        test_dataloader = DataLoader(test_dataset, batch_size=10, shuffle=False, num_workers=4)
+        TG, TP, _ = predict(model, test_dataloader)
+        print('test classification report:', classification_report(TG,TP))
+        print('test auc:', roc_auc_score(TG,TP))
+        best_test_list.append(roc_auc_score(TG,TP))
+        corr_save(roc_auc_score(TG,TP), 0, mode='acc', save_path=f'{save_dir}/test_record.txt')
+
     print(best_auc_list)
+    print('test auc:', best_test_list)
 
 
 if __name__ == '__main__':
-    task_zoo = [['CSA']]#, ['EAC'], ['EAC', 'ATL'], ['CSA', 'ATL'],]# ]
+    task_zoo = [['CSA']]#, ['EAC'], ['EAC', 'ATL'], ['C SA', 'ATL'],]# ]
     model_zoo = ['convsharevit']#, 'vit', 'mobilevit', 'mobilenet']
-    parr_zoo = [True, False]
+    parr_zoo = [False] # True, 
     for task in task_zoo:
         for model_counter in model_zoo:
             if model_counter == 'convsharevit':
