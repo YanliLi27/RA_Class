@@ -80,6 +80,7 @@ class Transformer(nn.Module):
 
         return self.norm(x)
 
+
 class ViT(nn.Module):
     def __init__(self, *, image_size, patch_size, num_classes, dim, depth, heads, mlp_dim, pool = 'cls', channels = 3, dim_head = 64, dropout = 0., emb_dropout = 0.):
         super().__init__()
@@ -95,7 +96,9 @@ class ViT(nn.Module):
         self.to_patch_embedding = nn.Sequential(
             Rearrange('b c (h p1) (w p2) -> b (h w) (p1 p2 c)', p1 = patch_height, p2 = patch_width),
             nn.LayerNorm(patch_dim),
-            nn.Linear(patch_dim, dim),
+            nn.Linear(patch_dim, dim),   # b, c, l, w = bclw --> b, l/16, w/16, c*16*16 =bclw  --> b, lw/256, 256c 
+            #  256c, dim    [b, lw/256, 256c] --> x [b, lw/256, dim]
+            # x(b,c,d,  m) weight (m,n) --> x(b,c,d,  n) 
             nn.LayerNorm(dim),
         )
 
@@ -118,7 +121,7 @@ class ViT(nn.Module):
         x = torch.cat((cls_tokens, x), dim=1)
         x += self.pos_embedding[:, :(n + 1)]
         x = self.dropout(x)
-
+        # x [xxxxx, xxxx, dim]
         x = self.transformer(x)
 
         x = x.mean(dim = 1) if self.pool == 'mean' else x[:, 0]

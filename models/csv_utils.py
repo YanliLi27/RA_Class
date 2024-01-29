@@ -46,14 +46,21 @@ class Attention(nn.Module):
         ) if project_out else nn.Identity()
 
     def forward(self, x):
+        # B, (ph*pw), L/ph*W/pw, C
         qkv = self.to_qkv(x).chunk(3, dim=-1)
+        # B, (ph*pw), L/ph*W/pw, C --> B, (ph*pw), L/ph*W/pw, inner_dim(dim_head*heads)*3
         q, k, v = map(lambda t: rearrange(t, 'b p n (h d) -> b p h n d', h = self.heads), qkv)
+        # B, (ph*pw), L/ph*W/pw, inner_dim(dim_head*heads) --> B, (ph*pw), heads, L/ph*W/pw, dim_head
 
         dots = torch.matmul(q, k.transpose(-1, -2)) * self.scale
+        # [B, (ph*pw), heads, L/ph*W/pw, dim_head] matmul --> [B, (ph*pw), heads, L/ph*W/pw, L/ph*W/pw]
         attn = self.attend(dots)
         out = torch.matmul(attn, v)
+        # [B, (ph*pw), heads, L/ph*W/pw, L/ph*W/pw] X [B, (ph*pw), heads, L/ph*W/pw, dim_head] -->
+        # [B, (ph*pw), heads, L/ph*W/pw, dim_head]
         out = rearrange(out, 'b p h n d -> b p n (h d)')
-        return self.to_out(out)
+        # [B, (ph*pw), heads, L/ph*W/pw, dim_head] --> [B, (ph*pw), L/ph*W/pw, dim_head*heads]
+        return self.to_out(out)  # [B, (ph*pw), L/ph*W/pw, dim_head*heads] --> [B, (ph*pw), L/ph*W/pw, C]
 
 
 class Transformer(nn.Module):
@@ -67,6 +74,7 @@ class Transformer(nn.Module):
             ]))
     
     def forward(self, x):
+        # B, (ph*pw), L/ph*W/pw, C
         for attn, ff in self.layers:
             x = attn(x) + x
             x = ff(x) + x
@@ -112,8 +120,54 @@ class ViTBlock(nn.Module):
         # Global representations
         _, _, h, w = x.shape
         x = rearrange(x, 'b d (h ph) (w pw) -> b (ph pw) (h w) d', ph=self.ph, pw=self.pw)
+        # B, C, L, W --> B, (ph*pw), L/ph*W/pw, C
         x = self.transformer(x)
         x = rearrange(x, 'b (ph pw) (h w) d -> b d (h ph) (w pw)', h=h//self.ph, w=w//self.pw, ph=self.ph, pw=self.pw)
+
+        # x: B, 4*C, L, W 
+
+        # Fusion
+        x = torch.cat((x, y), 1)
+        # x: B, 4*2C, L, W
+        x = self.merge_conv(x)
+        # x: B, 4*C, L, W
+        return x
+    
+
+class ViTBlockV2(nn.Module):
+    def __init__(self, channel, kernel_size, patch_size, groups, depth, mlp_dim, dropout=0.):
+        super().__init__()
+        '''
+        ViTBlock: simplified ViT block, merging channel and dim
+        channel:(channels of input),
+        depth:(num of transformer block)[2,4,3],
+        kernel_size:(kernel size of convlutional neural networks)
+        patch_size:(patch size of transformer)
+        heads:(heads number/kernel number)
+        att_dim:(nodes of mlp in attention module)
+        mlp_dim:(nodes of mlp in feedfward module)
+        groups:(groups for convolution)
+        dropout
+        '''
+
+        self.ph, self.pw = patch_size
+
+        self.transformer = Transformer(channel*self.ph*self.pw, depth, 4, 8, mlp_dim, dropout)
+        # Transformer(dim(channels of input), depth(num of transformer block)[2,4,3], 
+        #             4(heads number/kernel number), 8(length of mlp in attention),
+        #             mlp_dim(nodes of mlp, extension), dropout)
+        self.merge_conv = conv_nxn_bn_group(2 * channel, channel, kernel_size, stride=1, groups=groups)
+    
+    def forward(self, x):
+        # input size: B, 4*C, L, W / B, C, D, L, W not included
+        y = x.clone()
+        
+        # Global representations
+        _, _, h, w = x.shape
+        x = rearrange(x, 'b d (h ph) (w pw) -> b  (h w) (ph pw d)', ph=self.ph, pw=self.pw)
+        # B, C, L, W --> B, (ph*pw), L/ph*W/pw, C
+        x = self.transformer(x)
+        x = rearrange(x, 'b (h w) (ph pw d) -> b d (h ph) (w pw)', h=h//self.ph, w=w//self.pw, ph=self.ph, pw=self.pw)
 
         # x: B, 4*C, L, W 
 
