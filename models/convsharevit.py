@@ -1,6 +1,6 @@
 import torch
 import torch.nn as nn
-from models.csv_utils import ViTBlock, ParrellelViTBlock
+from models.csv_utils import ViTBlock, ViTBlockV2, ParrellelViTBlock
 from models.con_utils import DSConvBlock, NormalConvBlock, NormCNN, _make_divisible
 # ViTBlock: simplified ViT block, merging channel and dim
 # dim:(channels of input), 
@@ -106,7 +106,7 @@ class ConvShareViT(nn.Module):
         if parallel:
             vitblock = ParrellelViTBlock
         else:
-            vitblock = ViTBlock
+            vitblock = ViTBlockV2  # ViTBlock
         # blcok setting: ------------------------------------------------------------------------------------------#
 
 

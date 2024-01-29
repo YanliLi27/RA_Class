@@ -152,7 +152,7 @@ class ViTBlockV2(nn.Module):
 
         self.ph, self.pw = patch_size
 
-        self.transformer = Transformer(channel*self.ph*self.pw, depth, 4, 8, mlp_dim, dropout)
+        self.transformer = Transformer(channel*self.ph*self.pw, depth, 8, 64, mlp_dim, dropout)
         # Transformer(dim(channels of input), depth(num of transformer block)[2,4,3], 
         #             4(heads number/kernel number), 8(length of mlp in attention),
         #             mlp_dim(nodes of mlp, extension), dropout)
