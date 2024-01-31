@@ -1,9 +1,15 @@
 import torch
 import torch.nn as nn
 from einops import rearrange
+from typing import Union
 
 
-def conv_nxn_bn_group(inp, oup, kernal_size=3, stride=1, groups=4):
+'''
+V2 -- pw*pl*c
+V1 -- c
+'''
+
+def conv_nxn_bn_group(inp:int, oup:int, kernal_size:Union[int, tuple]=3, stride:Union[int, tuple]=1, groups:int=4):
     return nn.Sequential(
         nn.Conv2d(inp, oup, kernal_size, stride, 1, groups=groups, bias=False),
         nn.BatchNorm2d(oup),
@@ -12,7 +18,7 @@ def conv_nxn_bn_group(inp, oup, kernal_size=3, stride=1, groups=4):
 
 
 class PreNorm(nn.Module):
-    def __init__(self, dim, fn):
+    def __init__(self, dim:int, fn:nn.Module):
         super().__init__()
         self.norm = nn.LayerNorm(dim)
         self.fn = fn
@@ -22,7 +28,7 @@ class PreNorm(nn.Module):
 
 
 class FeedForward(nn.Module):
-    def __init__(self, dim, hidden_dim, dropout=0.):
+    def __init__(self, dim:int, hidden_dim:int, dropout:float=0.):
         super().__init__()
         self.net = nn.Sequential(
             nn.Linear(dim, hidden_dim),
@@ -37,7 +43,7 @@ class FeedForward(nn.Module):
 
 
 class Attention(nn.Module):
-    def __init__(self, dim, heads=8, dim_head=64, dropout=0.):
+    def __init__(self, dim:int, heads:int=8, dim_head:int=64, dropout:float=0.):
         super().__init__()
         inner_dim = dim_head *  heads
         project_out = not (heads == 1 and dim_head == dim)
@@ -72,7 +78,7 @@ class Attention(nn.Module):
 
 
 class Transformer(nn.Module):
-    def __init__(self, dim, depth, heads, dim_head, mlp_dim, dropout=0.):
+    def __init__(self, dim:int, depth:int, heads:int, dim_head:int, mlp_dim:int, dropout:float=0.):
         super().__init__()
         self.layers = nn.ModuleList([])
         for _ in range(depth):
@@ -90,7 +96,8 @@ class Transformer(nn.Module):
     
 
 class ViTBlock(nn.Module):
-    def __init__(self, channel, kernel_size, patch_size, groups, depth, mlp_dim, dropout=0.):
+    def __init__(self, channel:int, kernel_size:Union[int, tuple], patch_size:Union[int, tuple], 
+                 groups:int, depth:int, mlp_dim:int, dropout:float=0.):
         super().__init__()
         '''
         ViTBlock: simplified ViT block, merging channel and dim
@@ -135,7 +142,7 @@ class ViTBlock(nn.Module):
    
 
 class AttentionV2(nn.Module):
-    def __init__(self, dim, heads=8, dim_head=64, dropout=0.):
+    def __init__(self, dim:int, heads:int=8, dim_head:int=64, dropout:float=0.):
         super().__init__()
         inner_dim = dim_head *  heads
         project_out = not (heads == 1 and dim_head == dim)
@@ -170,7 +177,7 @@ class AttentionV2(nn.Module):
 
 
 class TransformerV2(nn.Module):
-    def __init__(self, dim, depth, heads, dim_head, mlp_dim, dropout=0.):
+    def __init__(self, dim:int, depth:int, heads:int, dim_head:int, mlp_dim:int, dropout:float=0.):
         super().__init__()
         self.layers = nn.ModuleList([])
         for _ in range(depth):
@@ -188,7 +195,8 @@ class TransformerV2(nn.Module):
     
 
 class ViTBlockV2(nn.Module):
-    def __init__(self, channel, kernel_size, patch_size, groups, depth, mlp_dim, dropout=0.):
+    def __init__(self, channel:int, kernel_size:Union[int, tuple], patch_size:Union[int, tuple], 
+                 groups:int, depth:int, mlp_dim:int, dropout:float=0.):
         super().__init__()
         '''
         ViTBlock: simplified ViT block, merging channel and dim
@@ -203,7 +211,7 @@ class ViTBlockV2(nn.Module):
         dropout
         '''
 
-        self.ph, self.pw = patch_size
+        self.ph, self.pw = patch_size, patch_size if isinstance(patch_size, int) else patch_size
 
         self.transformer = TransformerV2(channel*self.ph*self.pw, depth, 8, 64, mlp_dim, dropout)
         # Transformer(dim(channels of input), depth(num of transformer block)[2,4,3], 
@@ -233,7 +241,7 @@ class ViTBlockV2(nn.Module):
     
 
 class ParrellelAttention(nn.Module):
-    def __init__(self, dim, heads=8, dim_head=64, dropout=0.):
+    def __init__(self, dim:int, heads:int=8, dim_head:int=64, dropout:float=0.):
         super().__init__()
         inner_dim = dim_head *  heads
         project_out = not (heads == 1 and dim_head == dim)
@@ -262,7 +270,7 @@ class ParrellelAttention(nn.Module):
 
 
 class ParrellelTransformer(nn.Module):
-    def __init__(self, dim, depth, heads, dim_head, mlp_dim, dropout=0.):
+    def __init__(self, dim:int, depth:int, heads:int, dim_head:int, mlp_dim:int, dropout:float=0.):
         super().__init__()
         self.layers = nn.ModuleList([])
         for _ in range(depth):
@@ -278,7 +286,8 @@ class ParrellelTransformer(nn.Module):
     
 
 class ParrellelViTBlock(nn.Module):
-    def __init__(self, channel, kernel_size, patch_size, groups, depth, mlp_dim, dropout=0.):
+    def __init__(self, channel:int, kernel_size:Union[int, tuple], patch_size:Union[int, tuple], 
+                 groups:int, depth:int, mlp_dim:int, dropout:float=0.):
         super().__init__()
         '''
         ViTBlock: simplified ViT block, merging channel and dim
@@ -322,7 +331,7 @@ class ParrellelViTBlock(nn.Module):
     
 
 class ParrellelAttentionV2(nn.Module):
-    def __init__(self, dim, heads=8, dim_head=64, dropout=0.):
+    def __init__(self, dim:int, heads:int=8, dim_head:int=64, dropout:float=0.):
         super().__init__()
         inner_dim = dim_head *  heads
         project_out = not (heads == 1 and dim_head == dim)
@@ -351,7 +360,7 @@ class ParrellelAttentionV2(nn.Module):
 
 
 class ParrellelTransformerV2(nn.Module):
-    def __init__(self, dim, depth, heads, dim_head, mlp_dim, dropout=0.):
+    def __init__(self, dim:int, depth:int, heads:int, dim_head:int, mlp_dim:int, dropout:float=0.):
         super().__init__()
         self.layers = nn.ModuleList([])
         for _ in range(depth):
@@ -367,7 +376,8 @@ class ParrellelTransformerV2(nn.Module):
     
 
 class ParrellelViTBlockV2(nn.Module):
-    def __init__(self, channel, kernel_size, patch_size, groups, depth, mlp_dim, dropout=0.):
+    def __init__(self, channel:int, kernel_size:Union[int, tuple], patch_size:Union[int, tuple], 
+                 groups:int, depth:int, mlp_dim:int, dropout:float=0.):
         super().__init__()
         '''
         ViTBlock: simplified ViT block, merging channel and dim
