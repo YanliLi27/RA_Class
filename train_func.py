@@ -109,7 +109,7 @@ def train(model, dataset, val_dataset, lr=0.0001, num_epoch:int=100, batch_size:
         # fpr, tpr, thresholds = roc_curve(G, P)
         f1_scores = f1_score(G, P)
             
-        if auc > max_metric and train_loss<=0.67:
+        if auc > max_metric and train_loss<=0.69:
             max_metric = auc
             recorded_flag = True
             torch.save(model.state_dict(), model_file_name)
