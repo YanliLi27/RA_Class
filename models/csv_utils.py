@@ -112,7 +112,7 @@ class ViTBlock(nn.Module):
         dropout
         '''
 
-        self.ph, self.pw = patch_size
+        self.ph, self.pw = patch_size, patch_size if isinstance(patch_size, int) else patch_size
 
         self.transformer = Transformer(channel, depth, 4, 8, mlp_dim, dropout)
         # Transformer(dim(channels of input), depth(num of transformer block)[2,4,3], 
