@@ -57,7 +57,7 @@ def main_process(data_dir='', target_category=['EAC', 'ATL'],
             lr = 0.00005
         elif model_counter == 'convsharevit':
             model = make_csvmodel(img_2dsize=(512, 512), inch=in_channel, num_classes=2, num_features=43, extension=57, 
-                  groups=(len(target_site) * len(target_dirc)), width=1, dsconv=False, parallel=parallel, patch_size=(4,4), mode_feature=False, dropout=False, init=False)
+                  groups=(len(target_site) * len(target_dirc)), width=1, dsconv=False, parallel=parallel, patch_size=(2,2), mode_feature=False, dropout=False, init=False)
             batch_size = 8
             lr = 0.00005
         else:
