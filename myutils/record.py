@@ -69,3 +69,12 @@ def corr_save(corr, p_value, mode='corr', save_path:str='./models/figs/record.tx
             F.write(f'regularized corr: {str(corr)[:8]}')
             F.write('\n')
             F.write(f'regularized p_value: {str(p_value)}')
+    elif mode=='cm':
+        with open(save_path, 'a') as F:
+            F.write('\n')
+            F.write(f'confusion matrix: ')
+            F.write('\n')
+            for row in range(corr.shape[0]):
+                F.write(f'{str(corr[row])},')
+                F.write('\n')
+    

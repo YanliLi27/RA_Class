@@ -3,7 +3,7 @@ import torch.nn as nn   # used for bulid the neural networks
 from tqdm import tqdm  # just for visualization
 import torch
 from torch.utils.data import DataLoader
-from sklearn.metrics import accuracy_score, roc_auc_score, f1_score, roc_curve
+from sklearn.metrics import accuracy_score, roc_auc_score, f1_score, roc_curve, classification_report, confusion_matrix
 from myutils.extra_aug import extra_aug
 from thop import profile
 from myutils.record import record_save, corr_save, auc_save
@@ -117,6 +117,7 @@ def train(model, dataset, val_dataset, lr=0.0001, num_epoch:int=100, batch_size:
             auc_save(train_loss, epoch, save_path=f'{save_dir}/record.txt', mode='train loss')
             auc_save(val_loss, epoch, save_path=f'{save_dir}/record.txt', mode='val loss')
             auc_save(f1_scores, epoch, save_path=f'{save_dir}/record.txt', mode='f1')
+            corr_save(confusion_matrix(G,P), 0, mode='cm', save_path=f'{save_dir}/record.txt')
             auc_save(max_metric, epoch, save_path=f'{save_dir}/record.txt')
         else:
             print('auc:',auc)
@@ -132,6 +133,7 @@ def train(model, dataset, val_dataset, lr=0.0001, num_epoch:int=100, batch_size:
             auc_save(train_loss, epoch, save_path=f'{save_dir}/record.txt', mode='train loss')
             auc_save(val_loss, epoch, save_path=f'{save_dir}/record.txt', mode='val loss')
             auc_save(f1_scores, epoch, save_path=f'{save_dir}/record.txt', mode='f1')
+            corr_save(confusion_matrix(G,P), 0, mode='cm', save_path=f'{save_dir}/record.txt')
             auc_save(max_metric, epoch, save_path=f'{save_dir}/record.txt')
     return max_metric
             
