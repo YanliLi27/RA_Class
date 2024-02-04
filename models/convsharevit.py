@@ -1,6 +1,6 @@
 import torch
 import torch.nn as nn
-from models.csv_utils import ViTBlock, ViTBlockV2, ParrellelViTBlock, ParrellelViTBlockV2
+from models.csv_utils import ViTBlock
 from models.con_utils import DSConvBlock, NormalConvBlock, NormCNN, _make_divisible
 # ViTBlock: simplified ViT block, merging channel and dim
 # dim:(channels of input), 
@@ -13,14 +13,14 @@ from models.con_utils import DSConvBlock, NormalConvBlock, NormCNN, _make_divisi
 # groups:(groups for convolution)
 # dropout
 from einops import rearrange
-from typing import Callable, Any, Optional, List, Union
+from typing import Callable, Any, Optional, List, Union, Literal
 
 
 class ConvShareViT(nn.Module):
     def __init__(self, image_size, in_ch:int, num_classes:int=2,  # dataset related
                  num_features:int=43, extension:int=0,  # intermediate related
                  groups:int=4, width:int=1,# basic
-                 dsconv:bool=False, parallel:bool=False, # module type
+                 dsconv:bool=False, attn_type:Literal['normal', 'mobile', 'parr_normal', 'parr_mobile']='normal', # module type
                  block_setting:Optional[List[List]] = None,
                  patch_size:Union[list,tuple,int]=(2, 2),  # vit
                  mode_feature:bool=True, #
@@ -103,10 +103,8 @@ class ConvShareViT(nn.Module):
             convblock = DSConvBlock
         else:
             convblock = NormalConvBlock
-        if parallel:
-            vitblock = ParrellelViTBlockV2
-        else:
-            vitblock = ViTBlockV2  # ViTBlock
+
+        vitblock = ViTBlock
         # blcok setting: ------------------------------------------------------------------------------------------#
 
 
@@ -121,7 +119,7 @@ class ConvShareViT(nn.Module):
             output_channel = _make_divisible(c * width, 8)
             if b == 't':
                 patch_size = [s, s]
-                features.append(vitblock(output_channel, k, patch_size, g, d, e))
+                features.append(vitblock(output_channel, k, patch_size, g, d, e, attn_type=attn_type))
                 # transformer doesnt change the output channel
             elif b=='c':
                 for i in range(d):
@@ -181,7 +179,7 @@ class ConvShareViT(nn.Module):
 def make_csvmodel(img_2dsize=(512, 512), inch=20, num_classes=2, 
                   num_features=43, extension=157,
                   groups=4, width=1, dsconv=False, 
-                  parallel=False, patch_size=(2,2), 
+                  attn_type='normal', patch_size=(2,2), 
                   mode_feature:bool=False, dropout:bool=True, init:bool=False):
     block_setting = [
                 # block('c' for conv), out_channels, kernal_size, stride, groups, num of blocks, expansion(only for dsconv)
@@ -198,7 +196,7 @@ def make_csvmodel(img_2dsize=(512, 512), inch=20, num_classes=2,
     return ConvShareViT(img_2dsize, inch, num_classes=num_classes, 
                         num_features=num_features, extension=extension,
                         groups=groups, width=width,# basic
-                        dsconv=dsconv, parallel=parallel, # module type
+                        dsconv=dsconv, attn_type=attn_type, # module type
                         block_setting=block_setting,
                         patch_size=patch_size,  # vit
                         mode_feature=mode_feature,

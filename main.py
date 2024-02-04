@@ -11,12 +11,13 @@ from models.mobilevit import mobilevit_s, mobilevit_xs, mobilevit_xxs
 from models.convsharevit import make_csvmodel
 from myutils.record import record_save, corr_save, auc_save
 import os
-from typing import Union
+from typing import Union, Literal
 
 
 def main_process(data_dir='', target_category=['EAC', 'ATL'], 
                  target_site=['Wrist'], target_dirc=['TRA', 'COR'], phase='train',
-                 model_counter='mobilevit', parallel:bool=False, full_img:Union[bool, int]=5,
+                 model_counter='mobilevit', attn_type:Literal['normal', 'mobile', 'parr_normal', 'parr_mobile']='normal',
+                 full_img:Union[bool, int]=5,
                  maxfold:int=5, test_dir='D:\\ESMIRA\\CSA_resplit\\test'):
     best_auc_list = []
     best_test_list = []
@@ -57,7 +58,7 @@ def main_process(data_dir='', target_category=['EAC', 'ATL'],
             lr = 0.00005
         elif model_counter == 'convsharevit':
             model = make_csvmodel(img_2dsize=(512, 512), inch=in_channel, num_classes=2, num_features=43, extension=57, 
-                  groups=(len(target_site) * len(target_dirc)), width=1, dsconv=False, parallel=parallel, patch_size=(2,2), mode_feature=False, dropout=False, init=False)
+                  groups=(len(target_site) * len(target_dirc)), width=1, dsconv=False, attn_type=attn_type, patch_size=(2,2), mode_feature=False, dropout=False, init=False)
             batch_size = 8
             lr = 0.00005
         else:
@@ -95,15 +96,15 @@ def main_process(data_dir='', target_category=['EAC', 'ATL'],
 if __name__ == '__main__':
     task_zoo = [['CSA']]#, ['EAC'], ['EAC', 'ATL'], ['C SA', 'ATL'],]# ]
     model_zoo = ['convsharevit']#, 'vit', 'mobilevit', 'mobilenet']
-    parr_zoo = [False] # True, 
+    attn_zoo = ['normal'] # True, 
     for task in task_zoo:
         for model_counter in model_zoo:
             if model_counter == 'convsharevit':
-                for parallel in parr_zoo:
+                for attn in attn_zoo:
                     main_process(data_dir='D:\\ESMIRA\\CSA_resplit\\train',  target_category=task, 
                                 target_site=['Wrist','MCP'], target_dirc=['TRA', 'COR'], phase='train',
-                                model_counter=model_counter, parallel=parallel, full_img=7, maxfold=5)
+                                model_counter=model_counter, attn_type=attn, full_img=7, maxfold=5)
             else:
                 main_process(data_dir='D:\\ESMIRA\\CSA_resplit\\train',  target_category=task, 
                             target_site=['Wrist','MCP'], target_dirc=['TRA', 'COR'], phase='train',
-                            model_counter=model_counter, parallel=False, full_img=7, maxfold=5)
+                            model_counter=model_counter, attn_type=attn, full_img=7, maxfold=5)

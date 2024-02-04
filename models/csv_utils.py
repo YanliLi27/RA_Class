@@ -1,9 +1,7 @@
 import torch
 import torch.nn as nn
 from einops import rearrange
-from typing import Union
-
-
+from typing import Union, Literal
 '''
 V2 -- pw*pl*c
 V1 -- c
@@ -77,73 +75,6 @@ class Attention(nn.Module):
         return self.to_out(out)  # [B, (ph*pw), L/ph*W/pw, dim_head*heads] --> [B, (ph*pw), L/ph*W/pw, C]
 
 
-class Transformer(nn.Module):
-    def __init__(self, dim:int, depth:int, heads:int, dim_head:int, mlp_dim:int, dropout:float=0.):
-        super().__init__()
-        self.layers = nn.ModuleList([])
-        for _ in range(depth):
-            self.layers.append(nn.ModuleList([
-                PreNorm(dim, Attention(dim, heads, dim_head, dropout)),
-                PreNorm(dim, FeedForward(dim, mlp_dim, dropout))
-            ]))
-    
-    def forward(self, x):
-        # B, (ph*pw), L/ph*W/pw, C
-        for attn, ff in self.layers:
-            x = attn(x) + x
-            x = ff(x) + x
-        return x
-    
-
-class ViTBlock(nn.Module):
-    def __init__(self, channel:int, kernel_size:Union[int, tuple], patch_size:Union[int, tuple], 
-                 groups:int, depth:int, mlp_dim:int, dropout:float=0.):
-        super().__init__()
-        '''
-        ViTBlock: simplified ViT block, merging channel and dim
-        channel:(channels of input), 
-        depth:(num of transformer block)[2,4,3],
-        kernel_size:(kernel size of convlutional neural networks)
-        patch_size:(patch size of transformer)
-        heads:(heads number/kernel number)
-        att_dim:(nodes of mlp in attention module)
-        mlp_dim:(nodes of mlp in feedfward module)
-        groups:(groups for convolution)
-        dropout
-        '''
-
-        if type(patch_size)==list or type(patch_size)==tuple:
-            self.ph, self.pw = patch_size  
-        else:
-            self.ph, self.pw = patch_size, patch_size
-
-        self.transformer = Transformer(channel, depth, 4, 8, mlp_dim, dropout)
-        # Transformer(dim(channels of input), depth(num of transformer block)[2,4,3], 
-        #             4(heads number/kernel number), 8(length of mlp in attention),
-        #             mlp_dim(nodes of mlp, extension), dropout)
-        self.merge_conv = conv_nxn_bn_group(2 * channel, channel, kernel_size, stride=1, groups=groups)
-    
-    def forward(self, x):
-        # input size: B, 4*C, L, W / B, C, D, L, W not included
-        y = x.clone()
-        
-        # Global representations
-        _, _, h, w = x.shape
-        x = rearrange(x, 'b d (h ph) (w pw) -> b (ph pw) (h w) d', ph=self.ph, pw=self.pw)
-        # B, C, L, W --> B, (ph*pw), L/ph*W/pw, C
-        x = self.transformer(x)
-        x = rearrange(x, 'b (ph pw) (h w) d -> b d (h ph) (w pw)', h=h//self.ph, w=w//self.pw, ph=self.ph, pw=self.pw)
-
-        # x: B, 4*C, L, W 
-
-        # Fusion
-        x = torch.cat((x, y), 1)
-        # x: B, 4*2C, L, W
-        x = self.merge_conv(x)
-        # x: B, 4*C, L, W
-        return x
-   
-
 class AttentionV2(nn.Module):
     def __init__(self, dim:int, heads:int=8, dim_head:int=64, dropout:float=0.):
         super().__init__()
@@ -179,73 +110,6 @@ class AttentionV2(nn.Module):
         return self.to_out(out)  # [B, (ph*pw), L/ph*W/pw, dim_head*heads] --> [B, (ph*pw), L/ph*W/pw, C]
 
 
-class TransformerV2(nn.Module):
-    def __init__(self, dim:int, depth:int, heads:int, dim_head:int, mlp_dim:int, dropout:float=0.):
-        super().__init__()
-        self.layers = nn.ModuleList([])
-        for _ in range(depth):
-            self.layers.append(nn.ModuleList([
-                PreNorm(dim, AttentionV2(dim, heads, dim_head, dropout)),
-                PreNorm(dim, FeedForward(dim, mlp_dim, dropout))
-            ]))
-    
-    def forward(self, x):
-        # B, (ph*pw), L/ph*W/pw, C
-        for attn, ff in self.layers:
-            x = attn(x) + x
-            x = ff(x) + x
-        return x
-    
-
-class ViTBlockV2(nn.Module):
-    def __init__(self, channel:int, kernel_size:Union[int, tuple], patch_size:Union[int, tuple], 
-                 groups:int, depth:int, mlp_dim:int, dropout:float=0.):
-        super().__init__()
-        '''
-        ViTBlock: simplified ViT block, merging channel and dim
-        channel:(channels of input),
-        depth:(num of transformer block)[2,4,3],
-        kernel_size:(kernel size of convlutional neural networks)
-        patch_size:(patch size of transformer)
-        heads:(heads number/kernel number)
-        att_dim:(nodes of mlp in attention module)
-        mlp_dim:(nodes of mlp in feedfward module)
-        groups:(groups for convolution)
-        dropout
-        '''
-
-        if type(patch_size)==list or type(patch_size)==tuple:
-            self.ph, self.pw = patch_size  
-        else:
-            self.ph, self.pw = patch_size, patch_size
-
-        self.transformer = TransformerV2(channel*self.ph*self.pw, depth, 8, 64, mlp_dim, dropout)
-        # Transformer(dim(channels of input), depth(num of transformer block)[2,4,3], 
-        #             4(heads number/kernel number), 8(length of mlp in attention),
-        #             mlp_dim(nodes of mlp, extension), dropout)
-        self.merge_conv = conv_nxn_bn_group(2 * channel, channel, kernel_size, stride=1, groups=groups)
-    
-    def forward(self, x):
-        # input size: B, 4*C, L, W / B, C, D, L, W not included
-        y = x.clone()
-        
-        # Global representations
-        _, _, h, w = x.shape
-        x = rearrange(x, 'b d (h ph) (w pw) -> b  (h w) (ph pw d)', ph=self.ph, pw=self.pw)
-        # B, C, L, W --> B, (ph*pw), L/ph*W/pw, C
-        x = self.transformer(x)
-        x = rearrange(x, 'b (h w) (ph pw d) -> b d (h ph) (w pw)', h=h//self.ph, w=w//self.pw, ph=self.ph, pw=self.pw)
-
-        # x: B, 4*C, L, W 
-
-        # Fusion
-        x = torch.cat((x, y), 1)
-        # x: B, 4*2C, L, W
-        x = self.merge_conv(x)
-        # x: B, 4*C, L, W
-        return x
-    
-
 class ParrellelAttention(nn.Module):
     def __init__(self, dim:int, heads:int=8, dim_head:int=64, dropout:float=0.):
         super().__init__()
@@ -274,70 +138,6 @@ class ParrellelAttention(nn.Module):
         out = rearrange(out, 'b p h n d -> b p n (h d)')
         return self.to_out(out)
 
-
-class ParrellelTransformer(nn.Module):
-    def __init__(self, dim:int, depth:int, heads:int, dim_head:int, mlp_dim:int, dropout:float=0.):
-        super().__init__()
-        self.layers = nn.ModuleList([])
-        for _ in range(depth):
-            self.layers.append(nn.ModuleList([
-                ParrellelAttention(dim, heads, dim_head, dropout),
-                FeedForward(dim, mlp_dim, dropout)
-            ]))
-    
-    def forward(self, x):
-        for attn, ff in self.layers:
-            x = attn(x) + ff(x) # + x # not in the original similifying tranformer blocks
-        return x
-    
-
-class ParrellelViTBlock(nn.Module):
-    def __init__(self, channel:int, kernel_size:Union[int, tuple], patch_size:Union[int, tuple], 
-                 groups:int, depth:int, mlp_dim:int, dropout:float=0.):
-        super().__init__()
-        '''
-        ViTBlock: simplified ViT block, merging channel and dim
-        channel:(channels of input), 
-        depth:(num of transformer block)[2,4,3],
-        kernel_size:(kernel size of convlutional neural networks)
-        patch_size:(patch size of transformer)
-        heads:(heads number/kernel number)
-        att_dim:(nodes of mlp in attention module)
-        mlp_dim:(nodes of mlp in feedfward module)
-        groups:(groups for convolution)
-        dropout
-        '''
-
-        if type(patch_size)==list or type(patch_size)==tuple:
-            self.ph, self.pw = patch_size  
-        else:
-            self.ph, self.pw = patch_size, patch_size
-
-        self.transformer = ParrellelTransformer(channel, depth, 4, 8, mlp_dim, dropout)
-        # Transformer(dim(channels of input), depth(num of transformer block)[2,4,3], 
-        #             4(heads number/kernel number), 8(length of mlp in attention),
-        #             mlp_dim(nodes of mlp, extension), dropout)
-        self.merge_conv = conv_nxn_bn_group(2 * channel, channel, kernel_size, stride=1, groups=groups)
-    
-    def forward(self, x):
-        # input size: B, 4*C, L, W / B, C, D, L, W not included
-        y = x.clone()
-        
-        # Global representations
-        _, _, h, w = x.shape
-        x = rearrange(x, 'b d (h ph) (w pw) -> b (ph pw) (h w) d', ph=self.ph, pw=self.pw)
-        x = self.transformer(x)
-        x = rearrange(x, 'b (ph pw) (h w) d -> b d (h ph) (w pw)', h=h//self.ph, w=w//self.pw, ph=self.ph, pw=self.pw)
-
-        # x: B, 4*C, L, W 
-
-        # Fusion
-        x = torch.cat((x, y), 1)
-        # x: B, 4*2C, L, W
-        x = self.merge_conv(x)
-        # x: B, 4*C, L, W
-        return x
-    
 
 class ParrellelAttentionV2(nn.Module):
     def __init__(self, dim:int, heads:int=8, dim_head:int=64, dropout:float=0.):
@@ -368,25 +168,50 @@ class ParrellelAttentionV2(nn.Module):
         return self.to_out(out)
 
 
-class ParrellelTransformerV2(nn.Module):
-    def __init__(self, dim:int, depth:int, heads:int, dim_head:int, mlp_dim:int, dropout:float=0.):
+class Transformer(nn.Module):
+    def __init__(self, dim:int, depth:int, heads:int, dim_head:int, mlp_dim:int, dropout:float=0.,
+                 attn_type:str='normal'):
         super().__init__()
+        self.attn_type = attn_type
         self.layers = nn.ModuleList([])
         for _ in range(depth):
-            self.layers.append(nn.ModuleList([
-                ParrellelAttentionV2(dim, heads, dim_head, dropout),
-                FeedForward(dim, mlp_dim, dropout)
-            ]))
+            if attn_type=='mobile':
+                self.layers.append(nn.ModuleList([
+                    PreNorm(dim, Attention(dim, heads, dim_head, dropout)),
+                    PreNorm(dim, FeedForward(dim, mlp_dim, dropout))
+                ]))
+            elif attn_type=='normal':
+                self.layers.append(nn.ModuleList([
+                    PreNorm(dim, AttentionV2(dim, heads, dim_head, dropout)),
+                    PreNorm(dim, FeedForward(dim, mlp_dim, dropout))
+                ]))
+            elif attn_type=='parr_mobile':
+                self.layers.append(nn.ModuleList([
+                    ParrellelAttention(dim, heads, dim_head, dropout),
+                    FeedForward(dim, mlp_dim, dropout)
+                ]))
+            elif attn_type=='parr_normal':
+                self.layers.append(nn.ModuleList([
+                    ParrellelAttentionV2(dim, heads, dim_head, dropout),
+                    FeedForward(dim, mlp_dim, dropout)
+                ]))
     
     def forward(self, x):
+        # B, (ph*pw), L/ph*W/pw, C
         for attn, ff in self.layers:
-            x = attn(x) + ff(x) # + x # not in the original similifying tranformer blocks
+            if 'parr' in self.attn_type:
+                x = attn(x) + ff(x) # + x # not in the original similifying tranformer blocks
+            else:
+                x = attn(x) + x
+                x = ff(x) + x
         return x
-    
+            
 
-class ParrellelViTBlockV2(nn.Module):
+class ViTBlock(nn.Module):
     def __init__(self, channel:int, kernel_size:Union[int, tuple], patch_size:Union[int, tuple], 
-                 groups:int, depth:int, mlp_dim:int, dropout:float=0.):
+                 groups:int, depth:int, mlp_dim:int, dropout:float=0., 
+                 attn_type:Literal['normal', 'mobile', 'parr_normal', 'parr_mobile']='normal',
+                 out_channel:Union[int, None]=None):
         super().__init__()
         '''
         ViTBlock: simplified ViT block, merging channel and dim
@@ -400,17 +225,18 @@ class ParrellelViTBlockV2(nn.Module):
         groups:(groups for convolution)
         dropout
         '''
-
+        out_ch = out_channel if out_channel is not None else channel
+        self.attn_type = attn_type
         if type(patch_size)==list or type(patch_size)==tuple:
             self.ph, self.pw = patch_size  
         else:
             self.ph, self.pw = patch_size, patch_size
-
-        self.transformer = ParrellelTransformerV2(channel, depth, 4, 8, mlp_dim, dropout)
+        tfdim = channel*self.ph*self.pw if 'normal' in attn_type else channel
+        self.transformer = Transformer(tfdim, depth, 4, 8, mlp_dim, dropout, attn_type=attn_type)
         # Transformer(dim(channels of input), depth(num of transformer block)[2,4,3], 
         #             4(heads number/kernel number), 8(length of mlp in attention),
         #             mlp_dim(nodes of mlp, extension), dropout)
-        self.merge_conv = conv_nxn_bn_group(2 * channel, channel, kernel_size, stride=1, groups=groups)
+        self.merge_conv = conv_nxn_bn_group(2 * channel, out_ch, kernel_size, stride=1, groups=groups)
     
     def forward(self, x):
         # input size: B, 4*C, L, W / B, C, D, L, W not included
@@ -418,9 +244,16 @@ class ParrellelViTBlockV2(nn.Module):
         
         # Global representations
         _, _, h, w = x.shape
-        x = rearrange(x, 'b d (h ph) (w pw) -> b  (h w) (ph pw d)', ph=self.ph, pw=self.pw)
-        x = self.transformer(x)
-        x = rearrange(x, 'b (h w) (ph pw d) -> b d (h ph) (w pw)', h=h//self.ph, w=w//self.pw, ph=self.ph, pw=self.pw)
+        if 'mobile' in self.attn_type:
+            x = rearrange(x, 'b d (h ph) (w pw) -> b (ph pw) (h w) d', ph=self.ph, pw=self.pw)
+            # B, C, L, W --> B, (ph*pw), L/ph*W/pw, C
+            x = self.transformer(x)
+            x = rearrange(x, 'b (ph pw) (h w) d -> b d (h ph) (w pw)', h=h//self.ph, w=w//self.pw, ph=self.ph, pw=self.pw)
+        else:
+            x = rearrange(x, 'b d (h ph) (w pw) -> b  (h w) (ph pw d)', ph=self.ph, pw=self.pw)
+            # B, C, L, W --> B, (ph*pw), L/ph*W/pw, C
+            x = self.transformer(x)
+            x = rearrange(x, 'b (h w) (ph pw d) -> b d (h ph) (w pw)', h=h//self.ph, w=w//self.pw, ph=self.ph, pw=self.pw)
 
         # x: B, 4*C, L, W 
 
