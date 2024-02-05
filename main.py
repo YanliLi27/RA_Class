@@ -2,7 +2,7 @@ import torch
 from torch.utils.data import DataLoader
 from sklearn.metrics import classification_report, roc_auc_score, confusion_matrix
 from generators.dataset_class import ESMIRA_generator
-from train_func import train, pretrained, predict
+from train_func import train, pretrained, predict, predictplus
 from models.model import ModelClass
 from myutils.output_finder import output_finder
 from torchvision.models import MobileNetV2
@@ -10,6 +10,7 @@ from models.vit import ViT
 from models.mobilevit import mobilevit_s, mobilevit_xs, mobilevit_xxs
 from models.convsharevit import make_csvmodel
 from myutils.record import record_save, corr_save, auc_save
+from myutils.log import Record
 import os
 from typing import Union, Literal
 
@@ -80,14 +81,19 @@ def main_process(data_dir='', target_category=['EAC', 'ATL'],
         print(roc_auc_score(G,P))
         corr_save(confusion_matrix(G,P), 0, mode='cm', save_path=f'{save_dir}/record.txt')
 
-        # test_generator = ESMIRA_generator(test_dir, target_category, target_site, target_dirc, maxfold=maxfold)
-        # _, test_dataset = test_generator.returner(phase='test', fold_order=fold_order, mean_std=False, full_img=full_img)
-        # test_dataloader = DataLoader(test_dataset, batch_size=10, shuffle=False, num_workers=4)
-        # TG, TP, _ = predict(model, test_dataloader)
-        # print('test classification report:', classification_report(TG,TP))
-        # print('test auc:', roc_auc_score(TG,TP))
-        # best_test_list.append(roc_auc_score(TG,TP))
-        # corr_save(roc_auc_score(TG,TP), 0, mode='acc', save_path=f'{save_dir}/test_record.txt')
+        logger = Record('gt', 'pred', 'path', 'cm', 'auc')
+        test_generator = ESMIRA_generator(test_dir, target_category, target_site, target_dirc, maxfold=maxfold)
+        _, test_dataset = test_generator.returner(phase='test', fold_order=fold_order, mean_std=False, full_img=full_img, path_flag=True)
+        test_dataloader = DataLoader(test_dataset, batch_size=10, shuffle=False, num_workers=4)
+        TG, TP, abs_path = predictplus(model, test_dataloader)
+        cm = confusion_matrix(TG, TP)
+        auc = roc_auc_score(TG,TP)
+        print('test classification report:', classification_report(TG,TP))
+        print('test auc:', auc)
+        best_test_list.append(auc)
+        for i in range(len(abs_path)):
+            logger(gt=TG[i], pred=TP[i], path=abs_path[i], cm=cm, auc=auc)
+        logger.summary(save_path=f'{save_dir}/test_record.csv')
 
     print(best_auc_list)
     print('test auc:', best_test_list)

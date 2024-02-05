@@ -7,6 +7,7 @@ from sklearn.metrics import accuracy_score, roc_auc_score, f1_score, roc_curve, 
 from myutils.extra_aug import extra_aug
 from thop import profile
 from myutils.record import record_save, corr_save, auc_save
+from myutils.log import Record
 
 
 def train_step(model, optimizer, criterion, train_loader, extra_aug_flag:bool=False, epoch:int=0,
@@ -68,6 +69,28 @@ def predict(model, test_loader, criterion=None, device = torch.device("cuda" if 
     return total_labels.numpy().flatten(),total_preds.numpy().flatten(), sum(avg_loss)/len(avg_loss)
 
 
+def predictplus(model, test_loader, criterion=None, device = torch.device("cuda" if torch.cuda.is_available() else "cpu")):
+    if criterion is None:
+        criterion = nn.CrossEntropyLoss()
+    model.eval()
+    total_preds = torch.Tensor()
+    total_labels = torch.Tensor()
+    abs_path = []
+    avg_loss = []
+    with torch.no_grad():
+        for x,y,z in tqdm(test_loader):
+            x = x.to(device)
+            y = y.to(device)
+            pred = model(x)
+            loss = criterion(pred, y)
+            avg_loss.append(loss.item())
+            y_pred = torch.argmax(pred, dim=1)
+            total_preds = torch.cat((total_preds, y_pred.cpu()), 0)
+            total_labels = torch.cat((total_labels, y.cpu()), 0)
+            abs_path.extend(z)
+    return total_labels.numpy().flatten(),total_preds.numpy().flatten(), sum(avg_loss)/len(avg_loss), abs_path
+
+
 def train(model, dataset, val_dataset, lr=0.0001, num_epoch:int=100, batch_size:int=10, 
           output_name:str='', extra_aug_flag:bool=False, weight_decay:float=1e-5,
           optim_ada:bool=False, save_dir:str='',
@@ -86,6 +109,9 @@ def train(model, dataset, val_dataset, lr=0.0001, num_epoch:int=100, batch_size:
 
     dataloader = DataLoader(dataset, batch_size=batch_size, shuffle=True, num_workers=4)
     val_dataloader = DataLoader(val_dataset, batch_size=batch_size, shuffle=True, num_workers=4)
+
+    # record
+    logger = Record('trainloss', 'valloss', 'f1', 'cm', 'metric')
     max_metric = 0
 
     x1, _ = next(iter(dataloader))
@@ -108,12 +134,15 @@ def train(model, dataset, val_dataset, lr=0.0001, num_epoch:int=100, batch_size:
         auc = roc_auc_score(G, P)
         # fpr, tpr, thresholds = roc_curve(G, P)
         f1_scores = f1_score(G, P)
-            
+        cm = confusion_matrix(G,P)
+        logger(trainloss=train_loss, valloss=val_loss, f1=f1_scores, cm=cm, metric=max_metric)
+        
         if auc > max_metric and train_loss<=0.69:
             max_metric = auc
             recorded_flag = True
             torch.save(model.state_dict(), model_file_name)
             print("saving best model with auc: ", auc)
+            logger(trainloss=train_loss, valloss=val_loss, f1=f1_scores, cm=confusion_matrix(G,P), metric=max_metric)
             auc_save(train_loss, epoch, save_path=f'{save_dir}/record.txt', mode='train loss')
             auc_save(val_loss, epoch, save_path=f'{save_dir}/record.txt', mode='val loss')
             auc_save(f1_scores, epoch, save_path=f'{save_dir}/record.txt', mode='f1')
@@ -135,10 +164,9 @@ def train(model, dataset, val_dataset, lr=0.0001, num_epoch:int=100, batch_size:
             auc_save(f1_scores, epoch, save_path=f'{save_dir}/record.txt', mode='f1')
             corr_save(confusion_matrix(G,P), 0, mode='cm', save_path=f'{save_dir}/record.txt')
             auc_save(max_metric, epoch, save_path=f'{save_dir}/record.txt')
+    logger.summary(f'{save_dir}/record.csv')
     return max_metric
             
-            
-
 
 def pretrained(model, output_name:str=''):
     # load the weight

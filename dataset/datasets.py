@@ -8,7 +8,8 @@ from typing import Union
 
 
 class ESMIRADataset2D(data.Dataset):
-    def __init__(self, data_root:str, train_dict:dict, transform=None, mean_std:bool=False, full_img:Union[bool,int]=5):
+    def __init__(self, data_root:str, train_dict:dict, transform=None, mean_std:bool=False, full_img:Union[bool,int]=5,
+                 path_flag:bool=False):
         # train_dict {'site_dirc':[LIST(Target+Atlas): subdir\names.mha:cs:label ], ...}
         self.root = data_root  # the root of data
         self.train_dict = train_dict
@@ -26,6 +27,7 @@ class ESMIRADataset2D(data.Dataset):
         else:
             self.full_img = full_img
             self.slices = 20
+        self.path_flag = path_flag
 
  
     def __len__(self):
@@ -33,10 +35,13 @@ class ESMIRADataset2D(data.Dataset):
         return len(self.train_dict[key])
 
     def __getitem__(self, idx):
-        data, label = self._load_file(idx)
+        data, label, abs_path = self._load_file(idx)
         data = torch.from_numpy(data)
         data = self.transform(data)
-        return data, label  # [N*5, 512, 512], 1:int
+        if self.path_flag:
+            return data, label, abs_path
+        else:
+            return data, label  # [N*5, 512, 512], 1:int
 
     def _load_file(self, idx):  # item -- [5, 512, 512] * N
         data_matrix = []
@@ -62,7 +67,7 @@ class ESMIRADataset2D(data.Dataset):
                 else:
                     raise ValueError('the shape of input:{}, the id: {}, central_slice: {}'.format(data_array.shape, path, lower))
             data_matrix.append(data_array)
-        return np.vstack(data_matrix).astype(np.float32), label  # [N*5, 512, 512], 1:int
+        return np.vstack(data_matrix).astype(np.float32), label, abs_path  # [N*5, 512, 512], 1:int
 
 
     def _itensity_normalize(self, volume: np.array):
