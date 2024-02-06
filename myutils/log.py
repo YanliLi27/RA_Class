@@ -1,4 +1,5 @@
 import pandas as pd
+import os
 from typing import Any, Union, Literal
 
 
@@ -48,6 +49,8 @@ class Record():
         df = pd.DataFrame(self.record)
         df.set_index(keys='index', drop=False)
         if save_path:
+            if not os.path.exists(os.path.dirname(save_path)):
+                os.makedirs(os.path.dirname(save_path))
             df.to_csv(save_path)
         else:
             print(df)
