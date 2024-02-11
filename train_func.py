@@ -1,4 +1,5 @@
 import os  # for paths
+import platform
 import torch.nn as nn   # used for bulid the neural networks
 from tqdm import tqdm  # just for visualization
 import torch
@@ -17,7 +18,8 @@ def train_step(model, optimizer, criterion, train_loader, extra_aug_flag:bool=Fa
     avg_loss = []
     if extra_aug_flag:
         crit_aug = nn.MSELoss()
-        for x,y in tqdm(train_loader):
+        train_loader = tqdm(train_loader) if platform.system().lower()=='windows' else train_loader
+        for x,y in train_loader:
             optimizer.zero_grad()
             with torch.cuda.amp.autocast():
                 x = x.to(device)
@@ -34,7 +36,8 @@ def train_step(model, optimizer, criterion, train_loader, extra_aug_flag:bool=Fa
             avg_loss.append(loss.item())
     
     else:
-        for x,y in tqdm(train_loader):
+        train_loader = tqdm(train_loader) if platform.system().lower()=='windows' else train_loader
+        for x,y in train_loader:
             optimizer.zero_grad()
             with torch.cuda.amp.autocast():
                 x = x.to(device)
@@ -57,7 +60,8 @@ def predict(model, test_loader, criterion=None, device = torch.device("cuda" if 
     total_labels = torch.Tensor()
     avg_loss = []
     with torch.no_grad():
-        for x,y in tqdm(test_loader):
+        test_loader = tqdm(test_loader) if platform.system().lower()=='windows' else test_loader
+        for x,y in test_loader:
             x = x.to(device)
             y = y.to(device)
             pred = model(x)
@@ -78,7 +82,8 @@ def predictplus(model, test_loader, criterion=None, device = torch.device("cuda"
     abs_path = []
     avg_loss = []
     with torch.no_grad():
-        for x,y,z in tqdm(test_loader):
+        test_loader = tqdm(test_loader) if platform.system().lower()=='windows' else test_loader
+        for x,y,z in test_loader:
             x = x.to(device)
             y = y.to(device)
             pred = model(x)
