@@ -112,6 +112,7 @@ def train(model, dataset, val_dataset, lr=0.0001, num_epoch:int=100, batch_size:
 
     # record
     logger = Record('trainloss', 'valloss', 'f1', 'cm', 'metric')
+    logger_best = Record('trainloss', 'valloss', 'f1', 'cm', 'metric')
     max_metric = 0
 
     x1, _ = next(iter(dataloader))
@@ -142,12 +143,7 @@ def train(model, dataset, val_dataset, lr=0.0001, num_epoch:int=100, batch_size:
             recorded_flag = True
             torch.save(model.state_dict(), model_file_name)
             print("saving best model with auc: ", auc)
-            logger(trainloss=train_loss, valloss=val_loss, f1=f1_scores, cm=confusion_matrix(G,P), metric=max_metric)
-            auc_save(train_loss, epoch, save_path=f'{save_dir}/record.txt', mode='train loss')
-            auc_save(val_loss, epoch, save_path=f'{save_dir}/record.txt', mode='val loss')
-            auc_save(f1_scores, epoch, save_path=f'{save_dir}/record.txt', mode='f1')
-            corr_save(confusion_matrix(G,P), 0, mode='cm', save_path=f'{save_dir}/record.txt')
-            auc_save(max_metric, epoch, save_path=f'{save_dir}/record.txt')
+            logger_best(epoch=epoch, trainloss=train_loss, valloss=val_loss, f1=f1_scores, cm=confusion_matrix(G,P), metric=max_metric)
         else:
             print('auc:',auc)
             if not optim_ada:
@@ -165,6 +161,7 @@ def train(model, dataset, val_dataset, lr=0.0001, num_epoch:int=100, batch_size:
             corr_save(confusion_matrix(G,P), 0, mode='cm', save_path=f'{save_dir}/record.txt')
             auc_save(max_metric, epoch, save_path=f'{save_dir}/record.txt')
     logger.summary(f'{save_dir}/record.csv')
+    logger_best.summary(f'{save_dir}/record_best.csv')
     return max_metric
             
 
