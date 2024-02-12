@@ -45,6 +45,7 @@ class ESMIRADataset2D(data.Dataset):
 
     def _load_file(self, idx):  # item -- [5, 512, 512] * N
         data_matrix = []
+        path_list = []
         for key in self.train_dict.keys():
             com_info = self.train_dict[key][idx]  # 'subdir\names.mha:cs:label'
             path, cs, label = com_info.split(':')  # 'subdir\names.mha', 'cs', 'label'
@@ -67,7 +68,8 @@ class ESMIRADataset2D(data.Dataset):
                 else:
                     raise ValueError('the shape of input:{}, the id: {}, central_slice: {}'.format(data_array.shape, path, lower))
             data_matrix.append(data_array)
-        return np.vstack(data_matrix).astype(np.float32), label, abs_path  # [N*5, 512, 512], 1:int
+            path_list.append(abs_path)
+        return np.vstack(data_matrix).astype(np.float32), label, path_list  # [N*5, 512, 512], 1:int
 
 
     def _itensity_normalize(self, volume: np.array):

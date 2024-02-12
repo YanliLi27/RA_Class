@@ -86,6 +86,7 @@ def main_process(data_dir='', target_category=['EAC', 'ATL'],
         _, test_dataset = test_generator.returner(phase='test', fold_order=fold_order, mean_std=False, full_img=full_img, path_flag=True)
         test_dataloader = DataLoader(test_dataset, batch_size=10, shuffle=False, num_workers=4)
         TG, TP, abs_path = predictplus(model, test_dataloader)
+        # TG [batch, label], TP [batch, label], abs_path [batch, len(input), pathname]
         cm = confusion_matrix(TG, TP)
         auc = roc_auc_score(TG,TP)
         print('test classification report:', classification_report(TG,TP))
