@@ -69,7 +69,7 @@ def main_process(data_dir='', target_category=['EAC', 'ATL'],
         output_name = output_finder(model_counter, target_category, target_site, target_dirc, fold_order)
         if train_dataset is not None:
             best_auc = train(model=model, dataset=train_dataset, val_dataset=val_dataset, 
-                             lr=lr, num_epoch=40, batch_size=batch_size, output_name=output_name,
+                             lr=lr, num_epoch=60, batch_size=batch_size, output_name=output_name,
                              extra_aug_flag=False, weight_decay=1e-2, optim_ada=True, save_dir=save_dir)
             corr_save(best_auc, 0, mode='acc', save_path=f'{save_dir}/record.txt')
             best_auc_list.append(best_auc)
@@ -85,7 +85,7 @@ def main_process(data_dir='', target_category=['EAC', 'ATL'],
         test_generator = ESMIRA_generator(test_dir, target_category, target_site, target_dirc, maxfold=maxfold)
         _, test_dataset = test_generator.returner(phase='test', fold_order=fold_order, mean_std=False, full_img=full_img, path_flag=True)
         test_dataloader = DataLoader(test_dataset, batch_size=10, shuffle=False, num_workers=4)
-        TG, TP, abs_path = predictplus(model, test_dataloader)
+        TG, TP, _, abs_path = predictplus(model, test_dataloader)
         # TG [batch, label], TP [batch, label], abs_path [batch, len(input), pathname]
         cm = confusion_matrix(TG, TP)
         auc = roc_auc_score(TG,TP)
@@ -109,9 +109,9 @@ if __name__ == '__main__':
             if model_counter == 'convsharevit':
                 for attn in attn_zoo:
                     main_process(data_dir='D:\\ESMIRA\\CSA_resplit\\train',  target_category=task, 
-                                target_site=['Wrist','MCP'], target_dirc=['TRA', 'COR'], phase='train',
+                                target_site=['Wrist'], target_dirc=['TRA', 'COR'], phase='train',
                                 model_counter=model_counter, attn_type=attn, full_img=7, maxfold=5)
             else:
                 main_process(data_dir='D:\\ESMIRA\\CSA_resplit\\train',  target_category=task, 
-                            target_site=['Wrist','MCP'], target_dirc=['TRA', 'COR'], phase='train',
+                            target_site=['Wrist'], target_dirc=['TRA', 'COR'], phase='train',
                             model_counter=model_counter, attn_type=attn, full_img=7, maxfold=5)
