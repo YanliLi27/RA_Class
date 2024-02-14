@@ -60,7 +60,7 @@ def main_process(data_dir='', target_category=['EAC', 'ATL'],
         elif model_counter == 'convsharevit':
             model = make_csvmodel(img_2dsize=(512, 512), inch=in_channel, num_classes=2, num_features=43, extension=57, 
                   groups=(len(target_site) * len(target_dirc)), width=1, dsconv=False, attn_type=attn_type, patch_size=(2,2), mode_feature=False, dropout=False, init=False)
-            batch_size = 8
+            batch_size = 12
             lr = 0.00005
         else:
             raise ValueError('not supported model')
@@ -69,7 +69,7 @@ def main_process(data_dir='', target_category=['EAC', 'ATL'],
         output_name = output_finder(model_counter, target_category, target_site, target_dirc, fold_order)
         if train_dataset is not None:
             best_auc = train(model=model, dataset=train_dataset, val_dataset=val_dataset, 
-                             lr=lr, num_epoch=60, batch_size=batch_size, output_name=output_name,
+                             lr=lr, num_epoch=40, batch_size=batch_size, output_name=output_name,
                              extra_aug_flag=False, weight_decay=1e-2, optim_ada=True, save_dir=save_dir)
             corr_save(best_auc, 0, mode='acc', save_path=f'{save_dir}/record.txt')
             best_auc_list.append(best_auc)
@@ -84,7 +84,7 @@ def main_process(data_dir='', target_category=['EAC', 'ATL'],
         logger = Record('gt', 'pred', 'path', 'cm', 'auc')
         test_generator = ESMIRA_generator(test_dir, target_category, target_site, target_dirc, maxfold=maxfold)
         _, test_dataset = test_generator.returner(phase='test', fold_order=fold_order, mean_std=False, full_img=full_img, path_flag=True)
-        test_dataloader = DataLoader(test_dataset, batch_size=10, shuffle=False, num_workers=4)
+        test_dataloader = DataLoader(test_dataset, batch_size=1, shuffle=False, num_workers=4)
         TG, TP, _, abs_path = predictplus(model, test_dataloader)
         # TG [batch, label], TP [batch, label], abs_path [batch, len(input), pathname]
         cm = confusion_matrix(TG, TP)
@@ -92,7 +92,7 @@ def main_process(data_dir='', target_category=['EAC', 'ATL'],
         print('test classification report:', classification_report(TG,TP))
         print('test auc:', auc)
         best_test_list.append(auc)
-        for i in range(len(abs_path)):
+        for i in range(len(TG)):
             logger(gt=TG[i], pred=TP[i], path=abs_path[i], cm=cm, auc=auc)
         logger.summary(save_path=f'{save_dir}/test_record.csv')
 
@@ -109,7 +109,7 @@ if __name__ == '__main__':
             if model_counter == 'convsharevit':
                 for attn in attn_zoo:
                     main_process(data_dir='D:\\ESMIRA\\CSA_resplit\\train',  target_category=task, 
-                                target_site=['Wrist'], target_dirc=['TRA', 'COR'], phase='train',
+                                target_site=['Wrist', 'MCP'], target_dirc=['TRA', 'COR'], phase='train',
                                 model_counter=model_counter, attn_type=attn, full_img=7, maxfold=5)
             else:
                 main_process(data_dir='D:\\ESMIRA\\CSA_resplit\\train',  target_category=task, 

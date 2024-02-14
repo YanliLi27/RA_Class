@@ -119,6 +119,7 @@ def train(model, dataset, val_dataset, lr=0.0001, num_epoch:int=100, batch_size:
     logger = Record('trainloss', 'valloss', 'f1', 'cm', 'metric')
     logger_best = Record('trainloss', 'valloss', 'f1', 'cm', 'metric')
     max_metric = 0
+    min_metric = 20000.0
 
     x1, _ = next(iter(dataloader))
     print(x1.shape)
@@ -132,7 +133,7 @@ def train(model, dataset, val_dataset, lr=0.0001, num_epoch:int=100, batch_size:
     
     for epoch in range(1, num_epoch + 1):
         train_loss = train_step(model, optimizer, criterion, dataloader, extra_aug_flag, epoch)
-        print('train loss: ', train_loss)
+        print(f'epoch {epoch}, train loss: {train_loss}')
         if epoch % 50 == 0:
             print(f"Loss at epoch {epoch} is {train_loss}")
         G,P, val_loss = predict(model, val_dataloader, criterion)
@@ -153,6 +154,11 @@ def train(model, dataset, val_dataset, lr=0.0001, num_epoch:int=100, batch_size:
             print('auc:',auc)
             if not optim_ada:
                 scheduler.step()
+
+        if val_loss < min_metric and train_loss<=0.69:
+            min_metric = val_loss
+            recorded_flag = True
+            torch.save(model.state_dict(), model_file_name.replace('.model', 'loss.model'))
         print('f1:', f1_scores)
         print('val loss:', val_loss)
 
