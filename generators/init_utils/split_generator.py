@@ -94,7 +94,7 @@ def split_definer(split_list:dict, fold_order:int) ->Tuple[dict, dict]:
     return train_split_dict, val_split_dict
 
 
-def balancer(target_list:dict, atlas_list:dict, target_category:list) ->dict:
+def balancer(target_list:dict, atlas_list:dict, target_category:list, balance:bool=True) ->dict:
     # 从subdir:names变成subdir+names
     # balance the data in atlas and target split
     keyname = list(target_list.keys())[0]
@@ -106,8 +106,8 @@ def balancer(target_list:dict, atlas_list:dict, target_category:list) ->dict:
     length_atlas = len(atlas_list[at_keyname])
     capacity = [length_target, length_atlas]
     capacity_max = np.max(capacity)
-    target_repeat = capacity_max // length_target
-    atlas_repeat = capacity_max // length_atlas
+    target_repeat = capacity_max // length_target if balance else 1
+    atlas_repeat = capacity_max // length_atlas if balance else 1
     for key in target_list.keys():
         target_list[key] = target_list[key] * target_repeat
     for key in atlas_list.keys():

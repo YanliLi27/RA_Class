@@ -111,7 +111,8 @@ class ESMIRA_generator:
 
 
     def returner(self, phase:str='train', fold_order:int=0, mean_std:bool=False, 
-                 monai:bool=True, full_img:Union[bool, int]=5, path_flag:bool=False) ->Tuple[Union[None, Dataset], Dataset]:
+                 monai:bool=True, full_img:Union[bool, int]=5, path_flag:bool=False,
+                 test_balance:bool=True) ->Tuple[Union[None, Dataset], Dataset]:
         if monai:
             from monai import transforms
             transform = [transforms.Compose([
@@ -160,7 +161,7 @@ class ESMIRA_generator:
         else:
             target_val_dict = val_split_definer(self.target_split)
             atlas_val_dict = val_split_definer(self.atlas_split)
-            val_dict = balancer(target_val_dict, atlas_val_dict, self.target_category)
+            val_dict = balancer(target_val_dict, atlas_val_dict, self.target_category, balance=test_balance)
             val_dataset = ESMIRADataset2D(self.data_root, val_dict, transform[1], mean_std, 
                                           full_img=full_img, path_flag=path_flag)
             train_dataset = None
