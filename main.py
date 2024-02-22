@@ -99,14 +99,14 @@ def main_process(data_dir='', target_category=['EAC', 'ATL'],
             logger(gt=TG[i], pred=TP[i], path=abs_path[i], cm=cm, auc=auc)
         logger.summary(save_path=f'{save_dir}/test_record.csv')
             # best loss
-        model2 = pretrained(model=model, output_name=output_name.replace('.model', 'loss.model'))
-        logger2 = Record('gt', 'pred', 'path', 'cm', 'auc')
-        TG2, TP2, _, abs_path2 = predictplus(model2, test_dataloader)
-        cm2 = confusion_matrix(TG2, TP2)
-        auc2 = roc_auc_score(TG2,TP2)
-        for i in range(len(TG2)):
-            logger2(gt=TG2[i], pred=TP2[i], path=abs_path2[i], cm=cm2, auc=auc2)
-        logger2.summary(save_path=f'{save_dir}/test_record_loss.csv')
+        # model2 = pretrained(model=model, output_name=output_name.replace('.model', 'loss.model'))
+        # logger2 = Record('gt', 'pred', 'path', 'cm', 'auc')
+        # TG2, TP2, _, abs_path2 = predictplus(model2, test_dataloader)
+        # cm2 = confusion_matrix(TG2, TP2)
+        # auc2 = roc_auc_score(TG2,TP2)
+        # for i in range(len(TG2)):
+        #     logger2(gt=TG2[i], pred=TP2[i], path=abs_path2[i], cm=cm2, auc=auc2)
+        # logger2.summary(save_path=f'{save_dir}/test_record_loss.csv')
 
     print(best_auc_list)
     print('test auc:', best_test_list)
@@ -116,7 +116,7 @@ if __name__ == '__main__':
     task_zoo = [['CSA']]#, ['EAC'], ['EAC', 'ATL'], ['C SA', 'ATL'],]# ]
     model_zoo = ['convsharevit']#, 'vit', 'mobilevit', 'mobilenet']
     attn_zoo = ['normal'] # True, 
-    site_zoo = [['Wrist', 'MCP'], ['Wrist']]
+    site_zoo = [['Wrist']]  # ['Wrist', 'MCP'], 
     for task in task_zoo:
         for model_counter in model_zoo:
             for site in site_zoo:

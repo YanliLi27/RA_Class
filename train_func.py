@@ -171,6 +171,10 @@ def train(model, dataset, val_dataset, lr=0.0001, num_epoch:int=100, batch_size:
             auc_save(f1_scores, epoch, save_path=f'{save_dir}/record.txt', mode='f1')
             corr_save(confusion_matrix(G,P), 0, mode='cm', save_path=f'{save_dir}/record.txt')
             auc_save(max_metric, epoch, save_path=f'{save_dir}/record.txt')
+        
+        if epoch%20 ==0:
+            logger.summary(f'{save_dir}/record.csv')
+            logger_best.summary(f'{save_dir}/record_best.csv')
     logger.summary(f'{save_dir}/record.csv')
     logger_best.summary(f'{save_dir}/record_best.csv')
     return max_metric
