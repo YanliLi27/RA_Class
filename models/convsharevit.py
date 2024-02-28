@@ -1,7 +1,7 @@
 import torch
 import torch.nn as nn
-from models.csv_utils import ViTBlock
-from models.con_utils import DSConvBlock, NormalConvBlock, NormCNN, _make_divisible
+from ClassComponents.csv_utils import ViTBlock
+from ClassComponents.con_utils import DSConvBlock, NormalConvBlock, NormCNN, _make_divisible
 # ViTBlock: simplified ViT block, merging channel and dim
 # dim:(channels of input), 
 # depth:(num of transformer block)[2,4,3],
@@ -81,12 +81,12 @@ class ConvShareViT(nn.Module):
                 # block('c' for conv), out_channels, kernal_size, stride, groups, num of blocks, expansion(only for dsconv)
                 # block('t' for vit), out_channels, kernel_size, patch_size, groups, depth, mlp_dim(like the expansion)
                 # b,  c,  k, s, g, d, e  
-                ['c', 32, 3, 1, 4, 1, 0],  # one layer of normal conv # B, 4*C, L/2(256), W/2(256) 不变
-                ['c', 64, 3, 2, 4, 3, 0],  # downsample + three layers of conv # B, 4*C, L/2(256), W/2(256) -> B, 4*C, L/4(128), W/4(128)
-                ['c', 96, 3, 2, 4, 1, 0],  # downsample + one layer of conv # B, 4*C, L/4(128), W/4(128) -> B, 4*C, L/8(64), W/8(64)
-                ['t', 96, 3, 2, 4, 6, 240],  # vit # B, 4*C, L/8(64), W/8(64) -> B, 4*C, L/8(64), W/8(64)
+                ['c', 32, 3, 1, 1, 1, 0],  # one layer of normal conv # B, 4*C, L/2(256), W/2(256) 不变
+                ['c', 64, 3, 2, 1, 3, 0],  # downsample + three layers of conv # B, 4*C, L/2(256), W/2(256) -> B, 4*C, L/4(128), W/4(128)
+                ['c', 96, 3, 2, 1, 1, 0],  # downsample + one layer of conv # B, 4*C, L/4(128), W/4(128) -> B, 4*C, L/8(64), W/8(64)
+                ['t', 96, 3, 2, 1, 6, 240],  # vit # B, 4*C, L/8(64), W/8(64) -> B, 4*C, L/8(64), W/8(64)
                 # vit信息转换，跨输入进行信息交互
-                ['c', 160, 3, 2, 4, 1, 0],  # downsample + one layer of conv # B, 4*C, L/8(64), W/8(64) -> B, 4*C, L/16(32), W/16(32)
+                ['c', 160, 3, 2, 1, 1, 0],  # downsample + one layer of conv # B, 4*C, L/8(64), W/8(64) -> B, 4*C, L/16(32), W/16(32)
                 # 用于中间信息转换的cnn，主要进行降维
                 # B, 4*C, L/8(64), W/8(64) -> B, 4*C, L/16(32), W/16(32)
                 # 此层也用作于RAMRIS输出与CAM生成
@@ -96,8 +96,8 @@ class ConvShareViT(nn.Module):
                 # 或者用多尺度的CAM来提升分辨率--multiplication instead of accumulation. -->保证精准度然后提升分辨率--未必可行
                 # 隔层的gradient会不准确，底层的分辨率太低
                 # FLOPs和分辨率一定有一个trade-off。 --# 32 还是 64 要看加不加后面这一段的效果怎么样
-                ['t', 160, 3, 1, 4, 3, 640],  # vit # B, 4*C, L/16(32), W/16(32) -> B, 4*C, L/16(32), W/16(32)
-                ['c', 160, 3, 1, 4, 1, 0],  # one layer of conv
+                ['t', 160, 3, 1, 1, 3, 640],  # vit # B, 4*C, L/16(32), W/16(32) -> B, 4*C, L/16(32), W/16(32)
+                ['c', 160, 3, 1, 1, 1, 0],  # one layer of conv
             ]
         if dsconv:
             convblock = DSConvBlock
@@ -185,13 +185,13 @@ def make_csvmodel(img_2dsize=(512, 512), inch=20, num_classes=2,
                 # block('c' for conv), out_channels, kernal_size, stride, groups, num of blocks, expansion(only for dsconv)
                 # block('t' for vit), out_channels, kernel_size, patch_size, groups, depth, mlp_dim(like the expansion)
                 # b,  c,  k, s, g, d, e  
-                ['c', 32, 3, 1, 4, 1, 0],  # one layer of normal conv # B, 4*C, L/2(256), W/2(256) 不变
-                ['c', 64, 3, 2, 4, 3, 0],  # downsample + three layers of conv # B, 4*C, L/2(256), W/2(256) -> B, 4*C, L/4(128), W/4(128)
-                ['c', 96, 3, 2, 4, 1, 0],  # downsample + one layer of conv # B, 4*C, L/4(128), W/4(128) -> B, 4*C, L/8(64), W/8(64)
-                ['t', 96, 3, 2, 4, 2, 240],  # vit # B, 4*C, L/8(64), W/8(64) -> B, 4*C, L/8(64), W/8(64)
-                ['c', 160, 3, 2, 4, 1, 0],  # downsample + one layer of conv # B, 4*C, L/8(64), W/8(64) -> B, 4*C, L/16(32), W/16(32)
-                ['t', 160, 3, 1, 4, 3, 640],  # vit # B, 4*C, L/16(32), W/16(32) -> B, 4*C, L/16(32), W/16(32)
-                ['c', 160, 3, 1, 4, 1, 0],  # one layer of conv
+                ['c', 32, 3, 1, groups, 1, 0],  # one layer of normal conv # B, 4*C, L/2(256), W/2(256) 不变
+                ['c', 64, 3, 2, groups, 3, 0],  # downsample + three layers of conv # B, 4*C, L/2(256), W/2(256) -> B, 4*C, L/4(128), W/4(128)
+                ['c', 96, 3, 2, groups, 1, 0],  # downsample + one layer of conv # B, 4*C, L/4(128), W/4(128) -> B, 4*C, L/8(64), W/8(64)
+                ['t', 96, 3, 2, groups, 2, 240],  # vit # B, 4*C, L/8(64), W/8(64) -> B, 4*C, L/8(64), W/8(64)
+                ['c', 160, 3, 2, groups, 1, 0],  # downsample + one layer of conv # B, 4*C, L/8(64), W/8(64) -> B, 4*C, L/16(32), W/16(32)
+                ['t', 160, 3, 1, groups, 3, 640],  # vit # B, 4*C, L/16(32), W/16(32) -> B, 4*C, L/16(32), W/16(32)
+                ['c', 160, 3, 1, groups, 1, 0],  # one layer of conv
             ]
     return ConvShareViT(img_2dsize, inch, num_classes=num_classes, 
                         num_features=num_features, extension=extension,

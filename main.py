@@ -114,7 +114,7 @@ def main_process(data_dir='', target_category=['EAC', 'ATL'],
 
 if __name__ == '__main__':
     task_zoo = [['CSA']]#, ['EAC'], ['EAC', 'ATL'], ['C SA', 'ATL'],]# ]
-    model_zoo = ['convsharevit']#, 'vit', 'mobilevit', 'mobilenet']
+    model_zoo = ['modelclass', 'convsharevit']#, 'vit', 'mobilevit', 'mobilenet']
     attn_zoo = ['normal'] # True, 
     site_zoo = [['Wrist']]  # ['Wrist', 'MCP'], 
     for task in task_zoo:
@@ -125,7 +125,7 @@ if __name__ == '__main__':
                         main_process(data_dir='D:\\ESMIRA\\CSA_resplit\\train',  target_category=task, 
                                     target_site=site, target_dirc=['TRA', 'COR'], phase='train',
                                     model_counter=model_counter, attn_type=attn, full_img=7, maxfold=5)
-                # else:
-                #     main_process(data_dir='D:\\ESMIRA\\CSA_resplit\\train',  target_category=task, 
-                #                 target_site=site, target_dirc=['TRA', 'COR'], phase='train',
-                #                 model_counter=model_counter, attn_type=attn, full_img=7, maxfold=5)
+                else:
+                    main_process(data_dir='D:\\ESMIRA\\CSA_resplit\\train',  target_category=task, 
+                                target_site=site, target_dirc=['TRA', 'COR'], phase='train',
+                                model_counter=model_counter, attn_type=attn, full_img=7, maxfold=5)
