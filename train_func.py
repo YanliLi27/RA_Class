@@ -120,11 +120,12 @@ def train(model, dataset, val_dataset, lr=0.0001, num_epoch:int=100, batch_size:
     logger_best = Record('trainloss', 'valloss', 'f1', 'cm', 'metric')
     max_metric = 0
     min_metric = 20000.0
-
-    x1, _ = next(iter(dataloader))
-    print(x1.shape)
-    flops, params = profile(model, inputs=(x1, ))
-    print(f'FLOPS: {flops}, params: {params}')
+    
+    # thop will cause the model load failure
+    # x1, _ = next(iter(dataloader))
+    # print(x1.shape)
+    # flops, params = profile(model, inputs=(x1, ))
+    # print(f'FLOPS: {flops}, params: {params}')
 
     model = model.to(device)
 
@@ -144,7 +145,7 @@ def train(model, dataset, val_dataset, lr=0.0001, num_epoch:int=100, batch_size:
         cm = confusion_matrix(G,P)
         logger(trainloss=train_loss, valloss=val_loss, f1=f1_scores, cm=cm, metric=max_metric)
         
-        if auc > max_metric and train_loss<=0.69:
+        if auc > max_metric and train_loss<=0.69 and val_loss<1.0:
             max_metric = auc
             recorded_flag = True
             torch.save(model.state_dict(), model_file_name)
@@ -186,6 +187,8 @@ def pretrained(model, output_name:str=''):
     if os.path.isfile(model_file_name):
         checkpoint = torch.load(model_file_name)
         model.load_state_dict(checkpoint)
+    else:
+        raise ValueError(f'the weights dont exist {model_file_name}')
     return model
 
 
