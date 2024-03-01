@@ -112,7 +112,7 @@ class ESMIRA_generator:
 
     def returner(self, phase:str='train', fold_order:int=0, mean_std:bool=False, 
                  monai:bool=True, full_img:Union[bool, int]=5, path_flag:bool=False,
-                 test_balance:bool=True) ->Tuple[Union[None, Dataset], Dataset]:
+                 test_balance:bool=True, dimension:str='2D') ->Tuple[Union[None, Dataset], Dataset]:
         if monai:
             from monai import transforms
             transform = [transforms.Compose([
@@ -127,9 +127,7 @@ class ESMIRA_generator:
                                             transforms.RandHistogramShift(num_control_points=10, prob=0.2),
                                             transforms.RandZoom(prob=0.3, min_zoom=0.9, max_zoom=1.0, keep_size=True)
                                             ]),
-                        transforms.Compose([
-                                            transforms.RandAffine(prob=0.0, translate_range=(20, 20)),
-                                            ]),
+                        None
                             ]           
         else:
             from torchvision import transforms
@@ -137,9 +135,8 @@ class ESMIRA_generator:
                                             transforms.RandomRotation((10),),
                                             transforms.RandomAffine(degrees=0, translate=(0.05, 0.05), scale=(1, 1), shear=None, fill=0),
                                         ]),  
-                        transforms.Compose([
-                                        transforms.RandomAffine(degrees=0, translate=(0.05, 0.05), scale=(1, 1), shear=None, fill=0),
-                                        ])]
+                       None
+                       ]
 
         if phase=='train':
             target_train_dict, target_val_dict = split_definer(self.target_split, fold_order) 
@@ -155,14 +152,14 @@ class ESMIRA_generator:
             # {'site_dirc':[LIST(Target+Atlas): subdir\names.mha:cs:label ], ...}
             
             train_dataset = ESMIRADataset2D(self.data_root,train_dict, transform[0], mean_std, 
-                                            full_img=full_img, path_flag=path_flag)
+                                            full_img=full_img, path_flag=path_flag, dimension=dimension)
             val_dataset = ESMIRADataset2D(self.data_root, val_dict, transform[1], mean_std, 
-                                          full_img=full_img, path_flag=path_flag)
+                                          full_img=full_img, path_flag=path_flag, dimension=dimension)
         else:
             target_val_dict = val_split_definer(self.target_split)
             atlas_val_dict = val_split_definer(self.atlas_split)
             val_dict = balancer(target_val_dict, atlas_val_dict, self.target_category, balance=test_balance)
             val_dataset = ESMIRADataset2D(self.data_root, val_dict, transform[1], mean_std, 
-                                          full_img=full_img, path_flag=path_flag)
+                                          full_img=full_img, path_flag=path_flag, dimension=dimension)
             train_dataset = None
         return train_dataset, val_dataset  # [N*5, 512, 512] + int(label)

@@ -33,8 +33,9 @@ def main_process(data_dir='', target_category=['EAC', 'ATL'],
         save_dir = os.path.join(save_father_dir, f'fold_{fold_order}')
         if not os.path.exists(save_dir):
             os.makedirs(save_dir)
-
-        train_dataset, val_dataset = dataset_generator.returner(phase=phase, fold_order=fold_order, mean_std=False, full_img=full_img)
+        dimenson = '3D' if '3d' in model_counter else '2D'
+        train_dataset, val_dataset = dataset_generator.returner(phase=phase, fold_order=fold_order, 
+                                                                mean_std=False, full_img=full_img, dimension=dimenson)
         # input: [N*5, 512, 512] + int(label)
 
         # Step. 2 get the model: (can be any nn.Module, make sure it fit your input size and output size)
