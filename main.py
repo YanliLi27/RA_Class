@@ -4,6 +4,7 @@ from sklearn.metrics import classification_report, roc_auc_score, confusion_matr
 from generators.dataset_class import ESMIRA_generator
 from train_func import train, pretrained, predict, predictplus
 from models.model import ModelClass
+from models.model3d import ModelClass3D
 from myutils.output_finder import output_finder
 from torchvision.models import MobileNetV2
 from models.vit import ViT
@@ -54,7 +55,7 @@ def main_process(data_dir='', target_category=['EAC', 'ATL'],
             batch_size = 6
             lr = 0.0001
         elif model_counter == 'modelclass':
-            model = ModelClass(in_channel, num_classes=2)
+            model = ModelClass(in_channel, group_num=len(target_site) * len(target_dirc), num_classes=2)
             batch_size = 6
             lr = 0.00005
         elif model_counter == 'convsharevit':
@@ -62,6 +63,10 @@ def main_process(data_dir='', target_category=['EAC', 'ATL'],
                   groups=(len(target_site) * len(target_dirc)), width=1, dsconv=False, attn_type=attn_type, patch_size=(2,2), 
                   mode_feature=False, dropout=True, init=False)
             batch_size = 12
+            lr = 0.00005
+        elif model_counter == 'modelclass3d':
+            model = ModelClass3D(depth=in_channel, group_num=len(target_site) * len(target_dirc), num_classes=2)
+            batch_size = 6
             lr = 0.00005
         else:
             raise ValueError('not supported model')

@@ -6,28 +6,27 @@ class conv_block_group(nn.Module):
     def __init__(self, ch_in, ch_out, group_num=2):
         super(conv_block_group, self).__init__()
         self.conv = nn.Sequential(
-            nn.Conv2d(ch_in, ch_out, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), bias=False, groups=group_num),
-            nn.BatchNorm2d(ch_out),
-            nn.ReLU(inplace=True),
-            nn.Conv2d(ch_out, ch_out, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), bias=False, groups=group_num),
-            nn.BatchNorm2d(ch_out),
-            nn.ReLU(inplace=True)
+            nn.Conv3d(ch_in, ch_out, kernel_size=(1, 3, 3), stride=(1, 1, 1), padding=(1, 1, 1), bias=False, groups=group_num),
+            nn.BatchNorm3d(ch_out),
+            nn.SiLU(True),
+            nn.Conv3d(ch_out, ch_out, kernel_size=(1, 3, 3), stride=(1, 1, 1), padding=(1, 1, 1), bias=False, groups=group_num),
+            nn.BatchNorm3d(ch_out),
+            nn.SiLU(True)
         )
     def forward(self, x):
         x = self.conv(x)
         return x
 
 
-class Encoder(nn.Module):
-    def __init__(self, img_ch=5):  # 6 is 3 TRA + 3 COR
-        super(Encoder, self).__init__()
-        group_num = img_ch // 5
-
+class Encoder3d(nn.Module):
+    def __init__(self, group_num:int=2):  # 6 is 3 TRA + 3 COR
+        super(Encoder3d, self).__init__()
         self.Maxpool = nn.MaxPool2d(kernel_size=(2, 2), stride=(2, 2))
-        self.Conv1 = conv_block_group(ch_in=img_ch, ch_out=32*group_num, group_num=group_num)
+        self.Conv1 = conv_block_group(ch_in=1, ch_out=32*group_num, group_num=group_num)
         self.Conv2 = conv_block_group(ch_in=32*group_num, ch_out=64*group_num, group_num=group_num)
         self.Conv3 = conv_block_group(ch_in=64*group_num, ch_out=128*group_num, group_num=group_num)
         self.Conv4 = conv_block_group(ch_in=128*group_num, ch_out=256*group_num, group_num=group_num)
+
     def forward(self, x):
         # encoding path
         x1 = self.Conv1(x)
@@ -41,11 +40,11 @@ class Encoder(nn.Module):
 
 
 class Classifier(nn.Module):
-    def __init__(self, num_classes=2, group_num=2):
+    def __init__(self, num_classes=2, depth:int=14):
         super(Classifier, self).__init__()
-        self.avgpool = nn.AdaptiveAvgPool2d((7, 7))
+        self.avgpool = nn.AdaptiveAvgPool3d((depth, 1, 1))
         self.classifier_fc = nn.Sequential(
-            nn.Linear(256*group_num * 7 * 7, 4096),
+            nn.Linear(256 * depth, 4096),
             nn.SiLU(True),
             nn.Dropout(),
             nn.Linear(4096, 4096),
@@ -63,11 +62,11 @@ class Classifier(nn.Module):
         return x
 
 
-class ModelClass(nn.Module):
-    def __init__(self, img_ch=5, group_num=2, num_classes=2, encoder=Encoder, classifier=Classifier, init_weights: bool = True):
-        super(ModelClass, self).__init__()
-        self.encoder_class = encoder(img_ch=img_ch)
-        self.classifier = classifier(num_classes=num_classes, group_num=group_num)
+class ModelClass3D(nn.Module):
+    def __init__(self, depth:int=14, group_num:int=2, num_classes=2, encoder=Encoder3d, classifier=Classifier, init_weights: bool = True):
+        super(ModelClass3D, self).__init__()
+        self.encoder_class = encoder(group_num=group_num)
+        self.classifier = classifier(num_classes=num_classes, depth=depth)
         if init_weights:
             self._initialize_weights()
 
@@ -80,11 +79,11 @@ class ModelClass(nn.Module):
 
     def _initialize_weights(self) -> None:
         for m in self.modules():
-            if isinstance(m, nn.Conv2d):
+            if isinstance(m, nn.Conv3d):
                 nn.init.kaiming_normal_(m.weight, mode='fan_out', nonlinearity='relu')
                 if m.bias is not None:
                     nn.init.constant_(m.bias, 0)
-            elif isinstance(m, nn.BatchNorm2d):
+            elif isinstance(m, nn.BatchNorm3d):
                 nn.init.constant_(m.weight, 1)
                 nn.init.constant_(m.bias, 0)
             elif isinstance(m, nn.Linear):
