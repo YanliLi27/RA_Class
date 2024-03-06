@@ -66,8 +66,9 @@ def main_process(data_dir='', target_category=['EAC', 'ATL'],
             batch_size = 12
             lr = 0.00005
         elif model_counter == 'modelclass3d':
-            model = ModelClass3D(depth=in_channel, group_num=len(target_site) * len(target_dirc), num_classes=2)
-            batch_size = 6
+            in_ch=len(target_site)*len(target_dirc)
+            model = ModelClass3D(in_ch=in_ch, depth=in_channel//in_ch, group_num=len(target_site) * len(target_dirc), num_classes=2)
+            batch_size = 4
             lr = 0.00005
         else:
             raise ValueError('not supported model')
@@ -76,7 +77,7 @@ def main_process(data_dir='', target_category=['EAC', 'ATL'],
         output_name = output_finder(model_counter, target_category, target_site, target_dirc, fold_order)
         if train_dataset is not None:
             best_auc = train(model=model, dataset=train_dataset, val_dataset=val_dataset, 
-                             lr=lr, num_epoch=100, batch_size=batch_size, output_name=output_name,
+                             lr=lr, num_epoch=40, batch_size=batch_size, output_name=output_name,
                              extra_aug_flag=False, weight_decay=1e-2, optim_ada=True, save_dir=save_dir)
             corr_save(best_auc, 0, mode='acc', save_path=f'{save_dir}/record.txt')
             best_auc_list.append(best_auc)
@@ -92,7 +93,7 @@ def main_process(data_dir='', target_category=['EAC', 'ATL'],
         logger = Record('gt', 'pred', 'path', 'cm', 'auc')
         test_generator = ESMIRA_generator(test_dir, target_category, target_site, target_dirc, maxfold=maxfold)
         _, test_dataset = test_generator.returner(phase='test', fold_order=fold_order, mean_std=False, full_img=full_img, path_flag=True,
-                                                  test_balance=True)
+                                                  test_balance=True, dimension=dimenson)
         test_dataloader = DataLoader(test_dataset, batch_size=1, shuffle=False, num_workers=4)
         TG, TP, _, abs_path = predictplus(model, test_dataloader)
         # TG [batch, label], TP [batch, label], abs_path [batch, len(input), pathname]
@@ -119,10 +120,10 @@ def main_process(data_dir='', target_category=['EAC', 'ATL'],
 
 
 if __name__ == '__main__':
-    task_zoo = [['CSA']]#, ['EAC'], ['EAC', 'ATL'], ['C SA', 'ATL'],]# ]
-    model_zoo = ['modelclass']#, 'convsharevit', 'vit', 'mobilevit', 'mobilenet']
+    task_zoo = [['CSA']]#, ['EAC'], ['EAC', 'ATL'], ['CSA', 'ATL'],]# ]
+    model_zoo = ['modelclass3d'] #'modelclass']#, 'convsharevit', 'vit', 'mobilevit', 'mobilenet']
     attn_zoo = ['normal'] # True, 
-    site_zoo = [['Wrist']]  # ['Wrist', 'MCP'], 
+    site_zoo = [['Wrist'], ['Wrist', 'MCP'],]  #  
     for task in task_zoo:
         for model_counter in model_zoo:
             for site in site_zoo:

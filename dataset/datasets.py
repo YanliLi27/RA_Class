@@ -31,13 +31,15 @@ class ESMIRADataset2D(data.Dataset):
         return len(self.train_dict[key])
 
     def __getitem__(self, idx):
-        data, label, abs_path = self._load_file(idx) if self.dimension=='2D' else self._load_3dfile(idx)
+        data, label, abs_path = self._load_file(idx)
         data = torch.from_numpy(data)
         if self.dimension=='2D':
             data = self.transform(data) if self.transform else data
+            # [group*slice, L, W]  -- first channel as the channel dimension
         else:
-            data = self.transform(data) if self.transform else data
-            data = torch.unsqueeze(data, dim=0)
+            for data_slice in data:
+                data_slice = self.transform(data_slice) if self.transform else data_slice
+            # [channel=group=site, slice, L, W]  -- first channel as the channel dimension
         if self.path_flag:
             return data, label, abs_path
         else:
@@ -69,30 +71,10 @@ class ESMIRADataset2D(data.Dataset):
                     raise ValueError('the shape of input:{}, the id: {}, central_slice: {}'.format(data_array.shape, path, lower))
             data_matrix.append(data_array)
             path_list.append(abs_path)
-        return np.vstack(data_matrix).astype(np.float32), label, path_list  # [N*5, 512, 512], 1:int
-
-
-    def _load_3dfile(self, idx):  # item -- [5, 512, 512] * N
-        data_matrix = []
-        path_list = []
-        for key in self.train_dict.keys():
-            com_info = self.train_dict[key][idx]  # 'subdir\names.mha:cs:label'
-            path, cs, label = com_info.split(':')  # 'subdir\names.mha', 'cs', 'label'
-
-            
-            label = int(label)
-            abs_path = os.path.join(self.root, path)
-            data_mha = sitk.ReadImage(abs_path)
-            data_array = sitk.GetArrayFromImage(data_mha)
-            data_array = self._itensity_normalize(data_array)  # [5, 512, 512]
-            if data_array.shape != (20, 512, 512):
-                if data_array.shape == (20, 256, 256):
-                    data_array = resize(data_array, (20, 512, 512), preserve_range=True)  # preserve_range: no normalization
-                else:
-                    raise ValueError('the shape of input:{}, the id: {}, central_slice: {}'.format(data_array.shape, path, lower))
-            data_matrix.append(data_array)
-            path_list.append(abs_path)
-        return np.vstack(data_matrix).astype(np.float32), label, path_list  # [channel, N*5, 512, 512], 1:int
+        if self.dimension=='2D':
+            return np.vstack(data_matrix).astype(np.float32), label, path_list  # [N*5, 512, 512], 1:int
+        elif self.dimension=='3D':
+            return np.asarray(data_matrix, dtype=np.float32), label, path_list  # [ch, 5, 512, 512], 1:int
 
 
     def _itensity_normalize(self, volume: np.array):

@@ -19,13 +19,14 @@ class conv_block_group(nn.Module):
 
 
 class Encoder3d(nn.Module):
-    def __init__(self, group_num:int=2):  # 6 is 3 TRA + 3 COR
+    def __init__(self, in_ch:int=2, group_num:int=2):  # 6 is 3 TRA + 3 COR
         super(Encoder3d, self).__init__()
-        self.Maxpool = nn.MaxPool2d(kernel_size=(2, 2), stride=(2, 2))
-        self.Conv1 = conv_block_group(ch_in=1, ch_out=32*group_num, group_num=group_num)
-        self.Conv2 = conv_block_group(ch_in=32*group_num, ch_out=64*group_num, group_num=group_num)
-        self.Conv3 = conv_block_group(ch_in=64*group_num, ch_out=128*group_num, group_num=group_num)
-        self.Conv4 = conv_block_group(ch_in=128*group_num, ch_out=256*group_num, group_num=group_num)
+        self.Maxpool = nn.MaxPool3d(kernel_size=(1, 2, 2), stride=(1, 2, 2))
+        self.Conv1 = conv_block_group(ch_in=in_ch, ch_out=16*group_num, group_num=group_num)
+        self.Conv2 = conv_block_group(ch_in=16*group_num, ch_out=32*group_num, group_num=group_num)
+        self.Conv3 = conv_block_group(ch_in=32*group_num, ch_out=64*group_num, group_num=group_num)
+        self.Conv4 = conv_block_group(ch_in=64*group_num, ch_out=128*group_num, group_num=group_num)
+        # [256*2, 7, 64, 64]
 
     def forward(self, x):
         # encoding path
@@ -40,11 +41,11 @@ class Encoder3d(nn.Module):
 
 
 class Classifier(nn.Module):
-    def __init__(self, num_classes=2, depth:int=14):
+    def __init__(self, num_classes=2, depth:int=7, node:int=14):
         super(Classifier, self).__init__()
         self.avgpool = nn.AdaptiveAvgPool3d((depth, 1, 1))
         self.classifier_fc = nn.Sequential(
-            nn.Linear(256 * depth, 4096),
+            nn.Linear(128 * node, 4096),
             nn.SiLU(True),
             nn.Dropout(),
             nn.Linear(4096, 4096),
@@ -55,18 +56,18 @@ class Classifier(nn.Module):
         # self.softmax = nn.Softmax(dim=1)
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
-        x = self.avgpool(x)
-        x = torch.flatten(x, 1)
+        x = self.avgpool(x) # [256*2, 7, 64, 64] --> [256*2, 7, 1, 1]
+        x = torch.flatten(x, 1)  # [256*2, 7, 1, 1]  --> [256*27]
         x = self.classifier_fc(x)
         # x = self.softmax(x)
         return x
 
 
 class ModelClass3D(nn.Module):
-    def __init__(self, depth:int=14, group_num:int=2, num_classes=2, encoder=Encoder3d, classifier=Classifier, init_weights: bool = True):
+    def __init__(self, in_ch:int=2, depth:int=14, group_num:int=2, num_classes=2, encoder=Encoder3d, classifier=Classifier, init_weights: bool = True):
         super(ModelClass3D, self).__init__()
-        self.encoder_class = encoder(group_num=group_num)
-        self.classifier = classifier(num_classes=num_classes, depth=depth)
+        self.encoder_class = encoder(in_ch=in_ch, group_num=group_num)
+        self.classifier = classifier(num_classes=num_classes, depth=depth, node=in_ch*depth)
         if init_weights:
             self._initialize_weights()
 
