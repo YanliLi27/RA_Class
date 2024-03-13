@@ -25,7 +25,7 @@ class Encoder3d(nn.Module):
         self.Conv1 = conv_block_group(ch_in=in_ch, ch_out=16*group_num, group_num=group_num)
         self.Conv2 = conv_block_group(ch_in=16*group_num, ch_out=32*group_num, group_num=group_num)
         self.Conv3 = conv_block_group(ch_in=32*group_num, ch_out=64*group_num, group_num=group_num)
-        self.Conv4 = conv_block_group(ch_in=64*group_num, ch_out=128*group_num, group_num=group_num)
+        # self.Conv4 = conv_block_group(ch_in=64*group_num, ch_out=128*group_num, group_num=group_num)
         # [256*2, 7, 64, 64]
 
     def forward(self, x):
@@ -35,23 +35,23 @@ class Encoder3d(nn.Module):
         x2 = self.Conv2(x2)
         x3 = self.Maxpool(x2)
         x3 = self.Conv3(x3)
-        x4 = self.Maxpool(x3)
-        x4 = self.Conv4(x4)
-        return x4
+        # x4 = self.Maxpool(x3)
+        # x4 = self.Conv4(x4)
+        return x3
 
 
 class Classifier(nn.Module):
     def __init__(self, num_classes=2, depth:int=7, node:int=14):
         super(Classifier, self).__init__()
-        self.avgpool = nn.AdaptiveAvgPool3d((depth, 1, 1))
+        self.avgpool = nn.AdaptiveAvgPool3d((depth, 3, 3))
         self.classifier_fc = nn.Sequential(
-            nn.Linear(128 * node, 4096),
+            nn.Linear(64 * node *9, 2048),
             nn.SiLU(True),
             nn.Dropout(),
-            nn.Linear(4096, 4096),
+            nn.Linear(2048, 2048),
             nn.SiLU(True),
             nn.Dropout(),
-            nn.Linear(4096, num_classes),
+            nn.Linear(2048, num_classes),
         )
         # self.softmax = nn.Softmax(dim=1)
 

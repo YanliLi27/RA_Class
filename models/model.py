@@ -61,6 +61,29 @@ class Classifier(nn.Module):
         x = self.classifier_fc(x)
         # x = self.softmax(x)
         return x
+    
+
+class Classifier11(nn.Module):
+    def __init__(self, num_classes=2, group_num=2):
+        super(Classifier11, self).__init__()
+        self.avgpool = nn.AdaptiveAvgPool2d((1, 1))
+        self.classifier_fc = nn.Sequential(
+            nn.Linear(256*group_num, 2048),
+            nn.SiLU(True),
+            nn.Dropout(),
+            nn.Linear(2048, 2048),
+            nn.SiLU(True),
+            nn.Dropout(),
+            nn.Linear(2048, num_classes),
+        )
+        # self.softmax = nn.Softmax(dim=1)
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        x = self.avgpool(x)
+        x = torch.flatten(x, 1)
+        x = self.classifier_fc(x)
+        # x = self.softmax(x)
+        return x
 
 
 class ModelClass(nn.Module):

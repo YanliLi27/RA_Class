@@ -3,7 +3,7 @@ from torch.utils.data import DataLoader
 from sklearn.metrics import classification_report, roc_auc_score, confusion_matrix
 from generators.dataset_class import ESMIRA_generator
 from train_func import train, pretrained, predict, predictplus
-from models.model import ModelClass
+from models.model import ModelClass, Classifier11
 from models.model3d import ModelClass3D
 from myutils.output_finder import output_finder
 from torchvision.models import MobileNetV2
@@ -24,7 +24,7 @@ def main_process(data_dir='', target_category=['EAC', 'ATL'],
     best_auc_list = []
     best_test_list = []
     dataset_generator = ESMIRA_generator(data_dir, target_category, target_site, target_dirc, maxfold=maxfold)
-    for fold_order in range(maxfold):
+    for fold_order in range(0, maxfold):
         save_task = target_category[0] if len(target_category)==1 else (target_category[0]+'_'+target_category[1])
         save_site = target_site[0] if len(target_site)==1 else (target_site[0]+'_'+target_site[1])
         save_father_dir = os.path.join('./models/figs', f'{model_counter}_{save_site}_{save_task}')
@@ -59,6 +59,10 @@ def main_process(data_dir='', target_category=['EAC', 'ATL'],
             model = ModelClass(in_channel, group_num=len(target_site) * len(target_dirc), num_classes=2)
             batch_size = 6
             lr = 0.00005
+        elif model_counter == 'modelclass11':
+            model = ModelClass(in_channel, group_num=len(target_site) * len(target_dirc), num_classes=2, classifier=Classifier11)
+            batch_size = 6
+            lr = 0.00005
         elif model_counter == 'convsharevit':
             model = make_csvmodel(img_2dsize=(512, 512), inch=in_channel, num_classes=2, num_features=43, extension=57, 
                   groups=(len(target_site) * len(target_dirc)), width=1, dsconv=False, attn_type=attn_type, patch_size=(2,2), 
@@ -77,11 +81,11 @@ def main_process(data_dir='', target_category=['EAC', 'ATL'],
         output_name = output_finder(model_counter, target_category, target_site, target_dirc, fold_order)
         if train_dataset is not None:
             best_auc = train(model=model, dataset=train_dataset, val_dataset=val_dataset, 
-                             lr=lr, num_epoch=40, batch_size=batch_size, output_name=output_name,
+                             lr=lr, num_epoch=20, batch_size=batch_size, output_name=output_name,
                              extra_aug_flag=False, weight_decay=1e-2, optim_ada=True, save_dir=save_dir)
             corr_save(best_auc, 0, mode='acc', save_path=f'{save_dir}/record.txt')
             best_auc_list.append(best_auc)
-        # Step. 4 Load the weights and predict
+        # Step. 4 Load the weights and predict 
             # best auc
         model = pretrained(model=model, output_name=output_name)
         val_dataloader = DataLoader(val_dataset, batch_size=10, shuffle=False, num_workers=4)
@@ -123,7 +127,7 @@ if __name__ == '__main__':
     task_zoo = [['CSA']]#, ['EAC'], ['EAC', 'ATL'], ['CSA', 'ATL'],]# ]
     model_zoo = ['modelclass3d'] #'modelclass']#, 'convsharevit', 'vit', 'mobilevit', 'mobilenet']
     attn_zoo = ['normal'] # True, 
-    site_zoo = [['Wrist'], ['Wrist', 'MCP'],]  #  
+    site_zoo = [['Wrist']]#, ['Wrist', 'MCP'],]  #  
     for task in task_zoo:
         for model_counter in model_zoo:
             for site in site_zoo:
