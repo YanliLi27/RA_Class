@@ -41,11 +41,11 @@ class Encoder3d(nn.Module):
 
 
 class Classifier(nn.Module):
-    def __init__(self, num_classes=2, depth:int=7, node:int=14):
+    def __init__(self, num_classes=2, depth:int=7, node:int=14, poolsize:int=1):
         super(Classifier, self).__init__()
-        self.avgpool = nn.AdaptiveAvgPool3d((depth, 3, 3))
+        self.avgpool = nn.AdaptiveAvgPool3d((depth, poolsize, poolsize))
         self.classifier_fc = nn.Sequential(
-            nn.Linear(64 * node *9, 2048),
+            nn.Linear(64 * node *poolsize*poolsize, 2048),
             nn.SiLU(True),
             nn.Dropout(),
             nn.Linear(2048, 2048),
@@ -64,10 +64,11 @@ class Classifier(nn.Module):
 
 
 class ModelClass3D(nn.Module):
-    def __init__(self, in_ch:int=2, depth:int=14, group_num:int=2, num_classes=2, encoder=Encoder3d, classifier=Classifier, init_weights: bool = True):
+    def __init__(self, in_ch:int=2, depth:int=14, group_num:int=2, num_classes=2, poolsize=1,
+                  encoder=Encoder3d, classifier=Classifier, init_weights: bool = True):
         super(ModelClass3D, self).__init__()
         self.encoder_class = encoder(in_ch=in_ch, group_num=group_num)
-        self.classifier = classifier(num_classes=num_classes, depth=depth, node=in_ch*depth)
+        self.classifier = classifier(num_classes=num_classes, depth=depth, node=in_ch*depth, poolsize=poolsize)
         if init_weights:
             self._initialize_weights()
 

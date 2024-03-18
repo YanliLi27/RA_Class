@@ -71,7 +71,12 @@ def main_process(data_dir='', target_category=['EAC', 'ATL'],
             lr = 0.00005
         elif model_counter == 'modelclass3d':
             in_ch=len(target_site)*len(target_dirc)
-            model = ModelClass3D(in_ch=in_ch, depth=in_channel//in_ch, group_num=len(target_site) * len(target_dirc), num_classes=2)
+            if in_ch > 2:
+                poolsize = 1
+            else:
+                poolsize = 3
+            model = ModelClass3D(in_ch=in_ch, depth=in_channel//in_ch, group_num=len(target_site) * len(target_dirc), 
+                                 num_classes=2, poolsize=poolsize)
             batch_size = 4
             lr = 0.00005
         else:
@@ -81,7 +86,7 @@ def main_process(data_dir='', target_category=['EAC', 'ATL'],
         output_name = output_finder(model_counter, target_category, target_site, target_dirc, fold_order)
         if train_dataset is not None:
             best_auc = train(model=model, dataset=train_dataset, val_dataset=val_dataset, 
-                             lr=lr, num_epoch=20, batch_size=batch_size, output_name=output_name,
+                             lr=lr, num_epoch=30, batch_size=batch_size, output_name=output_name,
                              extra_aug_flag=False, weight_decay=1e-2, optim_ada=True, save_dir=save_dir)
             corr_save(best_auc, 0, mode='acc', save_path=f'{save_dir}/record.txt')
             best_auc_list.append(best_auc)
@@ -127,7 +132,7 @@ if __name__ == '__main__':
     task_zoo = [['CSA']]#, ['EAC'], ['EAC', 'ATL'], ['CSA', 'ATL'],]# ]
     model_zoo = ['modelclass3d'] #'modelclass']#, 'convsharevit', 'vit', 'mobilevit', 'mobilenet']
     attn_zoo = ['normal'] # True, 
-    site_zoo = [['Wrist']]#, ['Wrist', 'MCP'],]  #  
+    site_zoo = [ ['Wrist', 'MCP']] #['Wrist']]#,,]  #  
     for task in task_zoo:
         for model_counter in model_zoo:
             for site in site_zoo:
