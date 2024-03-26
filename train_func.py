@@ -92,7 +92,8 @@ def predictplus(model, test_loader, criterion=None, device = torch.device("cuda"
             y_pred = torch.argmax(pred, dim=1)
             total_preds = torch.cat((total_preds, y_pred.cpu()), 0)
             total_labels = torch.cat((total_labels, y.cpu()), 0)
-            abs_path.extend(z)
+            paths = [(z[i], pred[i]) for i in range(len(z))]
+            abs_path.extend(paths)
     return total_labels.numpy().flatten(),total_preds.numpy().flatten(), sum(avg_loss)/len(avg_loss), abs_path
 
 
@@ -173,7 +174,7 @@ def train(model, dataset, val_dataset, lr=0.0001, num_epoch:int=100, batch_size:
             corr_save(confusion_matrix(G,P), 0, mode='cm', save_path=f'{save_dir}/record.txt')
             auc_save(max_metric, epoch, save_path=f'{save_dir}/record.txt')
         
-        if epoch%20 ==0:
+        if epoch%15 ==0:
             logger.summary(f'{save_dir}/record.csv')
             logger_best.summary(f'{save_dir}/record_best.csv')
     logger.summary(f'{save_dir}/record.csv')

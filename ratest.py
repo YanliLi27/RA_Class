@@ -23,7 +23,6 @@ def main_process(data_dir='', target_category=['EAC', 'ATL'],
                  maxfold:int=5, test_dir='D:\\ESMIRA\\CSA_resplit\\test'):
     best_auc_list = []
     best_test_list = []
-    dataset_generator = ESMIRA_generator(data_dir, target_category, target_site, target_dirc, maxfold=maxfold)
     for fold_order in range(0, maxfold):
         save_task = target_category[0] if len(target_category)==1 else (target_category[0]+'_'+target_category[1])
         save_site = target_site[0] if len(target_site)==1 else (target_site[0]+'_'+target_site[1])
@@ -34,8 +33,6 @@ def main_process(data_dir='', target_category=['EAC', 'ATL'],
         if not os.path.exists(save_dir):
             os.makedirs(save_dir)
         dimenson = '3D' if '3d' in model_counter else '2D'
-        train_dataset, val_dataset = dataset_generator.returner(phase=phase, fold_order=fold_order, 
-                                                                mean_std=False, full_img=full_img, dimension=dimenson)
         # input: [N*5, 512, 512] + int(label)
 
         # Step. 2 get the model: (can be any nn.Module, make sure it fit your input size and output size)
@@ -43,32 +40,20 @@ def main_process(data_dir='', target_category=['EAC', 'ATL'],
         # model = ModelClass(in_channel, num_classes=2)
         if model_counter == 'mobilenet':
             model = MobileNetV2(num_classes=2, inch=in_channel)
-            batch_size = 6
-            lr = 0.0001
         elif model_counter == 'mobilevit':
             model = mobilevit_s(img_2dsize=(512, 512), inch=in_channel, num_classes=2, patch_size=(4,4))
-            batch_size = 6
-            lr = 0.0001
         elif model_counter == 'vit':
             model = ViT(image_size=(512, 512), patch_size=(16, 16), num_classes=2, 
                         dim=256, depth=12, heads=8, mlp_dim=512, pool='mean', channels=in_channel, 
                         dropout=0.2, emb_dropout=0.2)
-            batch_size = 6
-            lr = 0.0001
         elif model_counter == 'modelclass':
             model = ModelClass(in_channel, group_num=len(target_site) * len(target_dirc), num_classes=2)
-            batch_size = 6
-            lr = 0.00005
         elif model_counter == 'modelclass11':
             model = ModelClass(in_channel, group_num=len(target_site) * len(target_dirc), num_classes=2, classifier=Classifier11)
-            batch_size = 6
-            lr = 0.00005
         elif model_counter == 'convsharevit':
             model = make_csvmodel(img_2dsize=(512, 512), inch=in_channel, num_classes=2, num_features=43, extension=57, 
                   groups=(len(target_site) * len(target_dirc)), width=1, dsconv=False, attn_type=attn_type, patch_size=(2,2), 
                   mode_feature=False, dropout=True, init=False)
-            batch_size = 12
-            lr = 0.00005
         elif model_counter == 'modelclass3d':
             in_ch=len(target_site)*len(target_dirc)
             if in_ch > 2:
@@ -77,43 +62,33 @@ def main_process(data_dir='', target_category=['EAC', 'ATL'],
                 poolsize = 3
             model = ModelClass3D(in_ch=in_ch, depth=in_channel//in_ch, group_num=len(target_site) * len(target_dirc), 
                                  num_classes=2, poolsize=poolsize)
-            batch_size = 4
-            lr = 0.00005
         else:
             raise ValueError('not supported model')
 
         # Step. 3 Train the model /OR load the weights
         output_name = output_finder(model_counter, target_category, target_site, target_dirc, fold_order)
-        if train_dataset is not None:
-            best_auc = train(model=model, dataset=train_dataset, val_dataset=val_dataset, 
-                             lr=lr, num_epoch=30, batch_size=batch_size, output_name=output_name,
-                             extra_aug_flag=False, weight_decay=5e-3, optim_ada=True, save_dir=save_dir)
-            corr_save(best_auc, 0, mode='acc', save_path=f'{save_dir}/record.txt')
-            best_auc_list.append(best_auc)
         # Step. 4 Load the weights and predict 
             # best auc
         model = pretrained(model=model, output_name=output_name)
-        val_dataloader = DataLoader(val_dataset, batch_size=10, shuffle=False, num_workers=4)
-        G,P, _ = predict(model, val_dataloader)
-        print(classification_report(G,P))
-        print(roc_auc_score(G,P))
-        corr_save(confusion_matrix(G,P), 0, mode='cm', save_path=f'{save_dir}/record.txt')
 
-        logger = Record('gt', 'pred', 'path', 'cm', 'auc')
+        # logger = Record('gt', 'pred', 'path', 'cm', 'auc')
+        logger2 = Record('abs_path', 'confidence')
         test_generator = ESMIRA_generator(test_dir, target_category, target_site, target_dirc, maxfold=maxfold)
         _, test_dataset = test_generator.returner(phase='test', fold_order=fold_order, mean_std=False, full_img=full_img, path_flag=True,
                                                   test_balance=True, dimension=dimenson)
         test_dataloader = DataLoader(test_dataset, batch_size=1, shuffle=False, num_workers=4)
         TG, TP, _, abs_path = predictplus(model, test_dataloader)
         # TG [batch, label], TP [batch, label], abs_path [batch, len(input), pathname]
-        cm = confusion_matrix(TG, TP)
+        # cm = confusion_matrix(TG, TP)
         auc = roc_auc_score(TG,TP)
         print('test classification report:', classification_report(TG,TP))
         print('test auc:', auc)
         best_test_list.append(auc)
         for i in range(len(TG)):
-            logger(gt=TG[i], pred=TP[i], path=abs_path[i], cm=cm, auc=auc)
-        logger.summary(save_path=f'{save_dir}/test_record.csv')
+            # logger(gt=TG[i], pred=TP[i], path=abs_path[i], cm=cm, auc=auc)
+            logger2(abs_path=abs_path[i][0], confidence=abs_path[i][1])
+        # logger.summary(save_path=f'{save_dir}/test_record.csv')
+        logger2.summary(save_path=f'{save_dir}/testpath_record.csv')
             # best loss
         # model2 = pretrained(model=model, output_name=output_name.replace('.model', 'loss.model'))
         # logger2 = Record('gt', 'pred', 'path', 'cm', 'auc')
