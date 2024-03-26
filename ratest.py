@@ -20,13 +20,13 @@ def main_process(data_dir='', target_category=['EAC', 'ATL'],
                  target_site=['Wrist'], target_dirc=['TRA', 'COR'], phase='train',
                  model_counter='mobilevit', attn_type:Literal['normal', 'mobile', 'parr_normal', 'parr_mobile']='normal',
                  full_img:Union[bool, int]=5,
-                 maxfold:int=5, test_dir='D:\\ESMIRA\\CSA_resplit\\test'):
+                 maxfold:int=5):
     best_auc_list = []
     best_test_list = []
     for fold_order in range(0, maxfold):
         save_task = target_category[0] if len(target_category)==1 else (target_category[0]+'_'+target_category[1])
         save_site = target_site[0] if len(target_site)==1 else (target_site[0]+'_'+target_site[1])
-        save_father_dir = os.path.join('./models/figs', f'{model_counter}_{save_site}_{save_task}')
+        save_father_dir = os.path.join('./models/figstest', f'{model_counter}_{save_site}_{save_task}')
         if not os.path.exists(save_father_dir):
             os.makedirs(save_father_dir)
         save_dir = os.path.join(save_father_dir, f'fold_{fold_order}')
@@ -70,13 +70,13 @@ def main_process(data_dir='', target_category=['EAC', 'ATL'],
         # Step. 4 Load the weights and predict 
             # best auc
         model = pretrained(model=model, output_name=output_name)
-
+        model = model.to(device=torch.device("cuda" if torch.cuda.is_available() else "cpu"))
         # logger = Record('gt', 'pred', 'path', 'cm', 'auc')
         logger2 = Record('abs_path', 'confidence')
-        test_generator = ESMIRA_generator(test_dir, target_category, target_site, target_dirc, maxfold=maxfold)
+        test_generator = ESMIRA_generator(data_dir, target_category, target_site, target_dirc, maxfold=maxfold)
         _, test_dataset = test_generator.returner(phase='test', fold_order=fold_order, mean_std=False, full_img=full_img, path_flag=True,
                                                   test_balance=True, dimension=dimenson)
-        test_dataloader = DataLoader(test_dataset, batch_size=1, shuffle=False, num_workers=4)
+        test_dataloader = DataLoader(test_dataset, batch_size=2, shuffle=False, num_workers=4)
         TG, TP, _, abs_path = predictplus(model, test_dataloader)
         # TG [batch, label], TP [batch, label], abs_path [batch, len(input), pathname]
         # cm = confusion_matrix(TG, TP)
@@ -105,7 +105,7 @@ def main_process(data_dir='', target_category=['EAC', 'ATL'],
 
 if __name__ == '__main__':
     task_zoo = [['CSA']]#, ['EAC'], ['EAC', 'ATL'], ['CSA', 'ATL'],]# ]
-    model_zoo = ['modelclass3d'] #'modelclass']#, 'convsharevit', 'vit', 'mobilevit', 'mobilenet']
+    model_zoo = ['modelclass']#, 'modelclass3d'] # 'convsharevit', 'vit', 'mobilevit', 'mobilenet']
     attn_zoo = ['normal'] # True, 
     site_zoo = [ ['Wrist', 'MCP']] #['Wrist']]#,,]  #  
     for task in task_zoo:

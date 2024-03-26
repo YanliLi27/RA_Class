@@ -19,10 +19,8 @@ class conv_block_group(nn.Module):
 
 
 class Encoder(nn.Module):
-    def __init__(self, img_ch=5):  # 6 is 3 TRA + 3 COR
+    def __init__(self, img_ch=5, group_num:int=1):  # 6 is 3 TRA + 3 COR
         super(Encoder, self).__init__()
-        group_num = img_ch // 5
-
         self.Maxpool = nn.MaxPool2d(kernel_size=(2, 2), stride=(2, 2))
         self.Conv1 = conv_block_group(ch_in=img_ch, ch_out=32*group_num, group_num=group_num)
         self.Conv2 = conv_block_group(ch_in=32*group_num, ch_out=64*group_num, group_num=group_num)
@@ -89,7 +87,7 @@ class Classifier11(nn.Module):
 class ModelClass(nn.Module):
     def __init__(self, img_ch=5, group_num=2, num_classes=2, encoder=Encoder, classifier=Classifier, init_weights: bool = True):
         super(ModelClass, self).__init__()
-        self.encoder_class = encoder(img_ch=img_ch)
+        self.encoder_class = encoder(img_ch=img_ch, group_num=group_num)
         self.classifier = classifier(num_classes=num_classes, group_num=group_num)
         if init_weights:
             self._initialize_weights()

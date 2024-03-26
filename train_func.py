@@ -92,7 +92,7 @@ def predictplus(model, test_loader, criterion=None, device = torch.device("cuda"
             y_pred = torch.argmax(pred, dim=1)
             total_preds = torch.cat((total_preds, y_pred.cpu()), 0)
             total_labels = torch.cat((total_labels, y.cpu()), 0)
-            paths = [(z[i], pred[i]) for i in range(len(z))]
+            paths = [(z[i][0], pred[i].cpu().numpy()) for i in range(pred.shape[0])]
             abs_path.extend(paths)
     return total_labels.numpy().flatten(),total_preds.numpy().flatten(), sum(avg_loss)/len(avg_loss), abs_path
 
