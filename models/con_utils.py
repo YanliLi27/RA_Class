@@ -1,4 +1,3 @@
-import torch
 import torch.nn as nn
 # ViTBlock: simplified ViT block, merging channel and dim
 # dim:(channels of input), 
@@ -10,7 +9,6 @@ import torch.nn as nn
 # mlp_dim:(nodes of mlp in feedfward module)
 # groups:(groups for convolution)
 # dropout
-from einops import rearrange
 from typing import Optional
 
 class NormCNN(nn.Module):
