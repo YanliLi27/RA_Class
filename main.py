@@ -5,6 +5,7 @@ from generators.dataset_class import ESMIRA_generator
 from train_func import train, pretrained, predict, predictplus
 from models.model import ModelClass, Classifier11
 from models.model3d import ModelClass3D
+from models.csv3d import make_csv3dmodel
 from myutils.output_finder import output_finder
 from torchvision.models import MobileNetV2
 from models.vit import ViT
@@ -80,6 +81,13 @@ def main_process(data_dir='', target_category=['EAC', 'ATL'],
                                  num_classes=2, poolsize=poolsize)
             batch_size = 4 if batch_size==None else batch_size
             lr = 0.00005
+        elif model_counter == 'csv3d':
+            in_ch=len(target_site)*len(target_dirc)
+            model = make_csv3dmodel(img_2dsize=(in_channel//in_ch, 512, 512), inch=in_ch, num_classes=2, num_features=43, extension=57, 
+                  groups=(len(target_site) * len(target_dirc)), width=1, dsconv=False, attn_type=attn_type, patch_size=(1,2,2), 
+                  mode_feature=False, dropout=True, init=False)
+            batch_size = 4 if batch_size==None else batch_size
+            lr = 0.00005
         else:
             raise ValueError('not supported model')
 
@@ -131,7 +139,7 @@ def main_process(data_dir='', target_category=['EAC', 'ATL'],
 
 if __name__ == '__main__':
     task_zoo = [['CSA']]#, ['EAC'], ['EAC', 'ATL'], ['CSA', 'ATL'],]# ]
-    model_zoo = ['modelclass3d'] #'modelclass']#, 'convsharevit', 'vit', 'mobilevit', 'mobilenet']
+    model_zoo = ['modelclass3d'] #'modelclass']#, 'csv3d', 'convsharevit', 'vit', 'mobilevit', 'mobilenet']
     attn_zoo = ['normal'] # True, 
     site_zoo = [ ['Wrist', 'MCP']] #['Wrist']]#,,]  #  
     for task in task_zoo:

@@ -332,7 +332,7 @@ class CSViT3d(nn.Module):
             return x
 
 
-def make_csvmodel(img_2dsize, inch, num_classes=2, 
+def make_csv3dmodel(img_2dsize, inch, num_classes=2, 
                   num_features=43, extension=157,
                   groups=4, width=1, dsconv=False, 
                   attn_type='normal', patch_size=(1,2,2), 
