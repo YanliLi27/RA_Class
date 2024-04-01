@@ -368,7 +368,7 @@ def count_parameters(model):
 if __name__ == '__main__':
     img = torch.randn(1, 20, 512, 512)
 
-    vit = make_csvmodel()
+    vit = make_csv3dmodel()
     out = vit(img)
     print(out.shape)
     print(count_parameters(vit))
