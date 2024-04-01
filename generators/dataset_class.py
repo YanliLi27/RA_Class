@@ -148,7 +148,7 @@ class ESMIRA_generator:
             # {'ATL_XXX_XXX':[LIST--subname+names.mha:10to15:0], 'ATL_XXX_XXX':[LIST--subname+names.mha:10to15:0], ...}
             
             train_dict = balancer(target_train_dict, atlas_train_dict, self.target_category)
-            val_dict = balancer(target_val_dict, atlas_val_dict, self.target_category)
+            val_dict = balancer(target_val_dict, atlas_val_dict, self.target_category, balance=test_balance)
             # {'site_dirc':[LIST(Target+Atlas): subdir\names.mha:cs:label ], ...}
             
             train_dataset = ESMIRADataset2D(self.data_root,train_dict, transform[0], mean_std, 

@@ -35,7 +35,8 @@ def main_process(data_dir='', target_category=['EAC', 'ATL'],
             os.makedirs(save_dir)
         dimenson = '3D' if '3d' in model_counter else '2D'
         train_dataset, val_dataset = dataset_generator.returner(phase=phase, fold_order=fold_order, 
-                                                                mean_std=False, full_img=full_img, dimension=dimenson)
+                                                                mean_std=False, full_img=full_img, 
+                                                                test_balance=False, dimension=dimenson)
         # input: [N*5, 512, 512] + int(label)
 
         # Step. 2 get the model: (can be any nn.Module, make sure it fit your input size and output size)
@@ -102,7 +103,7 @@ def main_process(data_dir='', target_category=['EAC', 'ATL'],
         logger = Record('gt', 'pred', 'path', 'cm', 'auc')
         test_generator = ESMIRA_generator(test_dir, target_category, target_site, target_dirc, maxfold=maxfold)
         _, test_dataset = test_generator.returner(phase='test', fold_order=fold_order, mean_std=False, full_img=full_img, path_flag=True,
-                                                  test_balance=True, dimension=dimenson)
+                                                  test_balance=False, dimension=dimenson)
         test_dataloader = DataLoader(test_dataset, batch_size=1, shuffle=False, num_workers=4)
         TG, TP, _, abs_path = predictplus(model, test_dataloader)
         # TG [batch, label], TP [batch, label], abs_path [batch, len(input), pathname]

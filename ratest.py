@@ -23,7 +23,7 @@ def main_process(data_dir='', target_category=['EAC', 'ATL'],
                  maxfold:int=5):
     best_auc_list = []
     best_test_list = []
-    for fold_order in range(0, maxfold):
+    for fold_order in range(0, 2):
         save_task = target_category[0] if len(target_category)==1 else (target_category[0]+'_'+target_category[1])
         save_site = target_site[0] if len(target_site)==1 else (target_site[0]+'_'+target_site[1])
         save_father_dir = os.path.join('./models/figstest', f'{model_counter}_{save_site}_{save_task}')
@@ -46,7 +46,7 @@ def main_process(data_dir='', target_category=['EAC', 'ATL'],
             model = ViT(image_size=(512, 512), patch_size=(16, 16), num_classes=2, 
                         dim=256, depth=12, heads=8, mlp_dim=512, pool='mean', channels=in_channel, 
                         dropout=0.2, emb_dropout=0.2)
-        elif model_counter == 'modelclass':
+        elif model_counter == 'modelclass' or model_counter == 'modelclass_save':
             model = ModelClass(in_channel, group_num=len(target_site) * len(target_dirc), num_classes=2)
         elif model_counter == 'modelclass11':
             model = ModelClass(in_channel, group_num=len(target_site) * len(target_dirc), num_classes=2, classifier=Classifier11)
@@ -75,7 +75,7 @@ def main_process(data_dir='', target_category=['EAC', 'ATL'],
         logger2 = Record('abs_path', 'confidence')
         test_generator = ESMIRA_generator(data_dir, target_category, target_site, target_dirc, maxfold=maxfold)
         _, test_dataset = test_generator.returner(phase='test', fold_order=fold_order, mean_std=False, full_img=full_img, path_flag=True,
-                                                  test_balance=True, dimension=dimenson)
+                                                  test_balance=False, dimension=dimenson)
         test_dataloader = DataLoader(test_dataset, batch_size=2, shuffle=False, num_workers=4)
         TG, TP, _, abs_path = predictplus(model, test_dataloader)
         # TG [batch, label], TP [batch, label], abs_path [batch, len(input), pathname]
@@ -86,7 +86,7 @@ def main_process(data_dir='', target_category=['EAC', 'ATL'],
         best_test_list.append(auc)
         for i in range(len(TG)):
             # logger(gt=TG[i], pred=TP[i], path=abs_path[i], cm=cm, auc=auc)
-            logger2(abs_path=abs_path[i][0], confidence=abs_path[i][1])
+            logger2(abs_path=abs_path[i][0], confidence=abs_path[i][1][1])
         # logger.summary(save_path=f'{save_dir}/test_record.csv')
         logger2.summary(save_path=f'{save_dir}/testpath_record.csv')
             # best loss
@@ -105,18 +105,14 @@ def main_process(data_dir='', target_category=['EAC', 'ATL'],
 
 if __name__ == '__main__':
     task_zoo = [['CSA']]#, ['EAC'], ['EAC', 'ATL'], ['CSA', 'ATL'],]# ]
-    model_zoo = ['modelclass']#, 'modelclass3d'] # 'convsharevit', 'vit', 'mobilevit', 'mobilenet']
+    model_zoo = ['modelclass3d']#, 'modelclass3d', 'modelclass'] # 'convsharevit', 'vit', 'mobilevit', 'mobilenet']
     attn_zoo = ['normal'] # True, 
     site_zoo = [ ['Wrist', 'MCP']] #['Wrist']]#,,]  #  
     for task in task_zoo:
         for model_counter in model_zoo:
             for site in site_zoo:
-                if model_counter == 'convsharevit':
-                    for attn in attn_zoo:
-                        main_process(data_dir='D:\\ESMIRA\\CSA_resplit\\train',  target_category=task, 
-                                    target_site=site, target_dirc=['TRA', 'COR'], phase='train',
-                                    model_counter=model_counter, attn_type=attn, full_img=7, maxfold=5)
-                else:
-                    main_process(data_dir='D:\\ESMIRA\\CSA_resplit\\train',  target_category=task, 
+                for attn in attn_zoo:
+                    main_process(data_dir='D:\\ESMIRA\\CSA_resplit\\test',  target_category=task, 
                                 target_site=site, target_dirc=['TRA', 'COR'], phase='train',
-                                model_counter=model_counter, attn_type='normal', full_img=7, maxfold=5)
+                                model_counter=model_counter, attn_type=attn, full_img=7, maxfold=5)
+            
