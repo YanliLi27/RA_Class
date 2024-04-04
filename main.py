@@ -102,7 +102,7 @@ def main_process(data_dir='', target_category=['EAC', 'ATL'],
         # Step. 4 Load the weights and predict 
             # best auc
         model = pretrained(model=model, output_name=output_name)
-        val_dataloader = DataLoader(val_dataset, batch_size=10, shuffle=False, num_workers=4)
+        val_dataloader = DataLoader(val_dataset, batch_size=batch_size*2, shuffle=False, num_workers=4)
         G,P, _ = predict(model, val_dataloader)
         print(classification_report(G,P))
         print(roc_auc_score(G,P))
@@ -139,7 +139,7 @@ def main_process(data_dir='', target_category=['EAC', 'ATL'],
 
 if __name__ == '__main__':
     task_zoo = [['CSA']]#, ['EAC'], ['EAC', 'ATL'], ['CSA', 'ATL'],]# ]
-    model_zoo = ['modelclass']#, 'modelclass3d'] #'modelclass']#, 'convsharevit', 'vit', 'mobilevit', 'mobilenet']
+    model_zoo = ['modelclass3d']#'csv3d']#,  #'modelclass']#, 'convsharevit', 'vit', 'mobilevit', 'mobilenet']
     attn_zoo = ['normal'] # True, 
     site_zoo = [['Wrist']]#['Wrist', 'MCP']] #,,]  #  
     for task in task_zoo:

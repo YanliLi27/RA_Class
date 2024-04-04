@@ -17,7 +17,7 @@ from typing import Callable, Any, Optional, List, Union, Literal
 
 def conv_nxn_bn_group3d(inp:int, oup:int, kernal_size:Union[int, tuple]=3, stride:Union[int, tuple]=1, groups:int=4):
     return nn.Sequential(
-        nn.Conv2d(inp, oup, kernal_size, stride, 1, groups=groups, bias=False),
+        nn.Conv3d(inp, oup, (1, kernal_size, kernal_size), (1, stride, stride), (0, 1, 1), groups=groups, bias=False),
         nn.BatchNorm3d(oup),
         nn.SiLU()
     )
@@ -27,7 +27,7 @@ class NormCNN3d(nn.Module):
     def __init__(self, inp, oup, kernal_size=3, stride=1, groups=4):
         super().__init__()
         self.cnn = nn.Sequential(
-        nn.Conv3d(inp, oup, (1, kernal_size, kernal_size), (1, stride, stride), 1, groups=groups, bias=False),
+        nn.Conv3d(inp, oup, (1, kernal_size, kernal_size), (1, stride, stride), (0, 1, 1), groups=groups, bias=False),
         nn.BatchNorm3d(oup),
         nn.SiLU()
     )
