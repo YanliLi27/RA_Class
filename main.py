@@ -84,7 +84,7 @@ def main_process(data_dir='', target_category=['EAC', 'ATL'],
         elif model_counter == 'csv3d':
             in_ch=len(target_site)*len(target_dirc)
             model = make_csv3dmodel(img_2dsize=(in_channel//in_ch, 512, 512), inch=in_ch, num_classes=2, num_features=43, extension=57, 
-                  groups=(len(target_site) * len(target_dirc)), width=1, dsconv=False, attn_type=attn_type, patch_size=(1,2,2), 
+                  groups=(len(target_site) * len(target_dirc)), width=1, dsconv=False, attn_type=attn_type, patch_size=(2,2), 
                   mode_feature=False, dropout=True, init=False)
             batch_size = 4 if batch_size==None else batch_size
             lr = 0.00005
@@ -139,9 +139,9 @@ def main_process(data_dir='', target_category=['EAC', 'ATL'],
 
 if __name__ == '__main__':
     task_zoo = [['CSA']]#, ['EAC'], ['EAC', 'ATL'], ['CSA', 'ATL'],]# ]
-    model_zoo = ['csv3d']#, 'modelclass3d'] #'modelclass']#, 'convsharevit', 'vit', 'mobilevit', 'mobilenet']
+    model_zoo = ['modelclass']#, 'modelclass3d'] #'modelclass']#, 'convsharevit', 'vit', 'mobilevit', 'mobilenet']
     attn_zoo = ['normal'] # True, 
-    site_zoo = [ ['Wrist', 'MCP']] #['Wrist']]#,,]  #  
+    site_zoo = [['Wrist']]#['Wrist', 'MCP']] #,,]  #  
     for task in task_zoo:
         for model_counter in model_zoo:
             for site in site_zoo:

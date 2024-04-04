@@ -1,6 +1,6 @@
 import torch
 import torch.nn as nn
-from models.csv_utils import Transformer, conv_nxn_bn_group
+from models.csv_utils import Transformer
 # ViTBlock: simplified ViT block, merging channel and dim
 # dim:(channels of input), 
 # depth:(num of transformer block)[2,4,3],
@@ -13,6 +13,14 @@ from models.csv_utils import Transformer, conv_nxn_bn_group
 # dropout
 from einops import rearrange
 from typing import Callable, Any, Optional, List, Union, Literal
+
+
+def conv_nxn_bn_group3d(inp:int, oup:int, kernal_size:Union[int, tuple]=3, stride:Union[int, tuple]=1, groups:int=4):
+    return nn.Sequential(
+        nn.Conv2d(inp, oup, kernal_size, stride, 1, groups=groups, bias=False),
+        nn.BatchNorm3d(oup),
+        nn.SiLU()
+    )
 
 
 class NormCNN3d(nn.Module):
@@ -76,7 +84,7 @@ class NormalConvBlock3d(nn.Module):
 
         if expansion==0:
             self.conv = nn.Sequential(
-                nn.Conv3d(inp, oup, (1, kernal_size, kernal_size), (1, stride, stride), 1, bias=False, groups=groups),
+                nn.Conv3d(inp, oup, (1, kernal_size, kernal_size), (1, stride, stride), (0,1,1), bias=False, groups=groups),
                 nn.BatchNorm3d(oup),
                 nn.SiLU(),
             )
@@ -121,7 +129,7 @@ def _make_divisible(v: float, divisor: int, min_value: Optional[int] = None) -> 
 class ViTBlock3d(nn.Module):
     def __init__(self, channel:int, kernel_size:Union[int, tuple], patch_size:Union[int, tuple], 
                  groups:int, depth:int, mlp_dim:int, dropout:float=0., 
-                 attn_type:Literal['normal', 'mobile', 'parr_normal', 'parr_mobile']='normal',
+                 attn_type:Literal['normal', 'mobile', 'parr_normal', 'parr_mobile']='mobile',
                  out_channel:Union[int, None]=None):
         super().__init__()
         '''
@@ -147,35 +155,29 @@ class ViTBlock3d(nn.Module):
         # Transformer(dim(channels of input), depth(num of transformer block)[2,4,3], 
         #             4(heads number/kernel number), 8(length of mlp in attention),
         #             mlp_dim(nodes of mlp, extension), dropout)
-        self.merge_conv = conv_nxn_bn_group(2 * channel, out_ch, kernel_size, stride=1, groups=groups)
+        self.merge_conv = conv_nxn_bn_group3d(2 * channel, out_ch, kernel_size, stride=1, groups=groups)
     
     def forward(self, x):
         # input size: B, C, D, L, W 
-        B,C,D,L,W = x.shape
-        x = torch.reshape(x, (B, C*D, L, W)) # [B, C, D, L, W] -> [B, CD, L, W]
-        y = x.clone()
+        B, C, D, h, w = x.shape
+        x = torch.reshape(x, (B, C*D, h, w)) # [B, C, D, L, W] -> [B, CD, L, W]
+        y = x.clone()  # [B, CD, L, W]
         
-        # Global representations
-        _, _, h, w = x.shape
-        if 'mobile' in self.attn_type:
-            x = rearrange(x, 'b d (h ph) (w pw) -> b (ph pw) (h w) d', ph=self.ph, pw=self.pw)
-            # B, C, L, W --> B, (ph*pw), L/ph*W/pw, C
-            x = self.transformer(x)
-            x = rearrange(x, 'b (ph pw) (h w) d -> b d (h ph) (w pw)', h=h//self.ph, w=w//self.pw, ph=self.ph, pw=self.pw)
-        else:
-            x = rearrange(x, 'b d (h ph) (w pw) -> b  (h w) (ph pw d)', ph=self.ph, pw=self.pw)
-            # B, C, L, W --> B, (ph*pw), L/ph*W/pw, C
-            x = self.transformer(x)
-            x = rearrange(x, 'b (h w) (ph pw d) -> b d (h ph) (w pw)', h=h//self.ph, w=w//self.pw, ph=self.ph, pw=self.pw)
-
-        # x: B, 4*C, L, W 
+        # Global representations        
+        x = rearrange(x, 'b (d pd) (h ph) (w pw) -> b (ph pw) (h w pd) d', pd=D, ph=self.ph, pw=self.pw)
+        # B, CD, L, W --> B, (ph*pw), L/ph*W/pw*D, C
+        x = self.transformer(x)
+        x = rearrange(x, 'b (ph pw) (h w pd) d -> b (d pd) (h ph) (w pw)', h=h//self.ph, w=w//self.pw, pd=D, ph=self.ph, pw=self.pw)
+        # B, (ph*pw), L/ph*W/pw*D, C  -->  B, CD, L, W
+        # x: B, CD, L, W 
 
         # Fusion
         x = torch.cat((x, y), 1)
-        # x: B, g*2C, L, W
+        # x: B, 2CD, L, W
+        x = torch.reshape(x, (B, 2*C, D, h, w))  # B, 2CD, L, W --> B, 2C, D, L, W
         x = self.merge_conv(x)
-        # x: B, g*C, L, W
-        x = torch.reshape(x, (B, C, D, L, W))  # B, g*C, L, W --> B, C, D, L, W
+        # x: B, C, D, L, W
+        
         return x
 
 
@@ -232,10 +234,10 @@ class CSViT3d(nn.Module):
         # vit setting: --------------------------------------------------------------------------------------------#
         id, ih, iw = image_size  # [d, l, w]
         if type(patch_size)==list or type(patch_size)==tuple:
-            pd, ph, pw = patch_size  
+            ph, pw = patch_size  
         else:
-            pd, ph, pw = patch_size, patch_size, patch_size
-        assert ih % ph == 0 and iw % pw == 0 and id % pd == 0
+            ph, pw = patch_size, patch_size
+        assert ih % ph == 0 and iw % pw == 0
         # vit setting: --------------------------------------------------------------------------------------------#
         # block setting: ------------------------------------------------------------------------------------------#
         # out_channels, kernal_size, stride, groups, num of blocks, expansion (only for dsconv, 0 if normal)
@@ -248,7 +250,7 @@ class CSViT3d(nn.Module):
                 ['c', 64, 3, 2, groups, 3, 0],  # downsample + 3 conv # [B, g*C, D, L/2(256), W/2(256)] -> [B, g*C, D, L/4(128), W/4(128)]
                 ['c', 96, 3, 2, groups, 1, 0],  # downsample + conv # [B, g*C, D, L/4(128), W/4(128)] -> [B, g*C, D, L/8(64), W/8(64)]
                 ['c', 160, 3, 2, groups, 1, 0],  # downsample + conv # [B, g*C, D, L/8(64), W/8(64)] -> [B, g*C, D, L/16(32), W/16(32)]
-                ['t', 160, 3, 1, groups, 3, 640],  # vit # [B, g*C, D, L/16(32), W/16(32)] -> [B, g*C, D, L/16(32), W/16(32)]
+                ['t', 160, 3, pw, groups, 3, 640],  # vit # [B, g*C, D, L/16(32), W/16(32)] -> [B, g*C, D, L/16(32), W/16(32)]
             ]
         if dsconv:
             convblock = DSConvBlock3d
@@ -270,7 +272,7 @@ class CSViT3d(nn.Module):
             output_channel = _make_divisible(c * width, 8)
             if b == 't':
                 patch_size = [s, s]
-                features.append(vitblock(output_channel, k, patch_size, g, d, e, attn_type=attn_type))
+                features.append(vitblock(output_channel, k, patch_size, g, d, e, attn_type='mobile'))
                 # transformer doesnt change the output channel
             elif b=='c':
                 for i in range(d):
@@ -335,7 +337,7 @@ class CSViT3d(nn.Module):
 def make_csv3dmodel(img_2dsize, inch, num_classes=2, 
                   num_features=43, extension=157,
                   groups=4, width=1, dsconv=False, 
-                  attn_type='normal', patch_size=(1,2,2), 
+                  attn_type='normal', patch_size=(2,2), 
                   mode_feature:bool=False, dropout:bool=True, init:bool=False):
     block_setting = [
                 # block('c' for conv), out_channels, kernal_size, stride, groups, num of blocks, expansion(only for dsconv)
@@ -345,7 +347,7 @@ def make_csv3dmodel(img_2dsize, inch, num_classes=2,
                 ['c', 64, 3, 2, groups, 3, 0],  # downsample + 3 conv # [B, g*C, D, L/2(256), W/2(256)] -> [B, g*C, D, L/4(128), W/4(128)]
                 ['c', 96, 3, 2, groups, 1, 0],  # downsample + conv # [B, g*C, D, L/4(128), W/4(128)] -> [B, g*C, D, L/8(64), W/8(64)]
                 ['c', 160, 3, 2, groups, 1, 0],  # downsample + conv # [B, g*C, D, L/8(64), W/8(64)] -> [B, g*C, D, L/16(32), W/16(32)]
-                ['t', 160, 3, 1, groups, 3, 640],  # vit # [B, g*C, D, L/16(32), W/16(32)] -> [B, g*C, D, L/16(32), W/16(32)]
+                ['t', 160, 3, patch_size[0], groups, 3, 640],  # vit # [B, g*C, D, L/16(32), W/16(32)] -> [B, g*C, D, L/16(32), W/16(32)]
             ]
     return CSViT3d(img_2dsize, inch, num_classes=num_classes, 
                     num_features=num_features, extension=extension,
