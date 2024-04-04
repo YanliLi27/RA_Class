@@ -139,7 +139,7 @@ def main_process(data_dir='', target_category=['EAC', 'ATL'],
 
 if __name__ == '__main__':
     task_zoo = [['CSA']]#, ['EAC'], ['EAC', 'ATL'], ['CSA', 'ATL'],]# ]
-    model_zoo = ['modelclass3d'] #'modelclass']#, 'csv3d', 'convsharevit', 'vit', 'mobilevit', 'mobilenet']
+    model_zoo = ['csv3d']#, 'modelclass3d'] #'modelclass']#, 'convsharevit', 'vit', 'mobilevit', 'mobilenet']
     attn_zoo = ['normal'] # True, 
     site_zoo = [ ['Wrist', 'MCP']] #['Wrist']]#,,]  #  
     for task in task_zoo:

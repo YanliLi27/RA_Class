@@ -83,15 +83,15 @@ class NormalConvBlock3d(nn.Module):
         else:
             hidden_dim = int(inp*expansion)
             self.conv = nn.Sequential(
-                nn.Conv3d(inp, hidden_dim, (1, 3, 3), 1, 1, bias=False),
+                nn.Conv3d(inp, hidden_dim, (1, 3, 3), 1, (0,1,1), bias=False),
                 nn.BatchNorm3d(hidden_dim),
                 nn.SiLU(),
                 # dw
-                nn.Conv3d(hidden_dim, hidden_dim, (1, 3, 3), (1, stride, stride), 1, groups=hidden_dim, bias=False),
+                nn.Conv3d(hidden_dim, hidden_dim, (1, 3, 3), (1, stride, stride), (0,1,1), groups=hidden_dim, bias=False),
                 nn.BatchNorm3d(hidden_dim),
                 nn.SiLU(),
                 # pw-linear
-                nn.Conv3d(hidden_dim, oup, (1, 3, 3), 1, 1, bias=False),
+                nn.Conv3d(hidden_dim, oup, (1, 3, 3), 1, (0,1,1), bias=False),
                 nn.BatchNorm3d(oup),
             )
 
