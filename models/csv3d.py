@@ -261,7 +261,7 @@ class CSViT3d(nn.Module):
 
         # block building -----------------------------------------------------------------------------------------#
         input_channel = _make_divisible(16* groups * width, 8)
-        last_channel = _make_divisible(160 * groups* width, 8)
+        last_channel = _make_divisible(160 * groups* width, 160)
         features:List[nn.Module] = [
             NormCNN3d(in_ch, input_channel, stride=2, groups=groups)
         ]  # [B, g, D(7), L(512), W(512)]-> # [B, g*C, D(7), L/2(256), W/2(256)]  降维是有必要的，滤掉大多数的特异点,减少FLOPs
@@ -283,7 +283,7 @@ class CSViT3d(nn.Module):
         )  # [B, g*C0, D, L/16(32), W/16(32)] -> [B, g*C1, D, L/16(32), W/16(32)]
         self.features = nn.Sequential(*features)
 
-        self.pool = nn.AdaptiveAvgPool3d((1, 1, 1))  # B, 4*C, 1, 1, 1
+        self.pool = nn.AdaptiveAvgPool3d((1, 1, 1))  # B, g*C, 1, 1, 1
 
         # not sure
         self.protofeature = nn.Linear(last_channel, num_features+extension, bias=False)
@@ -341,13 +341,11 @@ def make_csv3dmodel(img_2dsize, inch, num_classes=2,
                 # block('c' for conv), out_channels, kernal_size, stride, groups, num of blocks, expansion(only for dsconv)
                 # block('t' for vit), out_channels, kernel_size, patch_size, groups, depth, mlp_dim(like the expansion)
                 # b,  c,  k, s, g, d, e  
-                ['c', 32, 3, 1, groups, 1, 0],  # one layer of normal conv # B, 4*C, L/2(256), W/2(256) 不变
-                ['c', 64, 3, 2, groups, 3, 0],  # downsample + three layers of conv # B, 4*C, L/2(256), W/2(256) -> B, 4*C, L/4(128), W/4(128)
-                ['c', 96, 3, 2, groups, 1, 0],  # downsample + one layer of conv # B, 4*C, L/4(128), W/4(128) -> B, 4*C, L/8(64), W/8(64)
-                ['t', 96, 3, 2, groups, 2, 240],  # vit # B, 4*C, L/8(64), W/8(64) -> B, 4*C, L/8(64), W/8(64)
-                ['c', 160, 3, 2, groups, 1, 0],  # downsample + one layer of conv # B, 4*C, L/8(64), W/8(64) -> B, 4*C, L/16(32), W/16(32)
-                ['t', 160, 3, 1, groups, 3, 640],  # vit # B, 4*C, L/16(32), W/16(32) -> B, 4*C, L/16(32), W/16(32)
-                ['c', 160, 3, 1, groups, 1, 0],  # one layer of conv
+                ['c', 32, 3, 1, groups, 1, 0],  # [B, g*C, D, L/2(256), W/2(256)] -> [B, g*C, D, L/2(256), W/2(256)]
+                ['c', 64, 3, 2, groups, 3, 0],  # downsample + 3 conv # [B, g*C, D, L/2(256), W/2(256)] -> [B, g*C, D, L/4(128), W/4(128)]
+                ['c', 96, 3, 2, groups, 1, 0],  # downsample + conv # [B, g*C, D, L/4(128), W/4(128)] -> [B, g*C, D, L/8(64), W/8(64)]
+                ['c', 160, 3, 2, groups, 1, 0],  # downsample + conv # [B, g*C, D, L/8(64), W/8(64)] -> [B, g*C, D, L/16(32), W/16(32)]
+                ['t', 160, 3, 1, groups, 3, 640],  # vit # [B, g*C, D, L/16(32), W/16(32)] -> [B, g*C, D, L/16(32), W/16(32)]
             ]
     return CSViT3d(img_2dsize, inch, num_classes=num_classes, 
                     num_features=num_features, extension=extension,
