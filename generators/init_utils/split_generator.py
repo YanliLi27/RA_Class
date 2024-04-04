@@ -54,15 +54,19 @@ def class_generator(common_dict:dict, target_category:list) ->dict:
 def split_generator(target_split:dict, random:bool=True, maxfold:int=5) ->dict:
     # target_split = {'EAC_XXX_XXX':[LIST--subname+names.mha:10to15:1], 'EAC_XXX_XXX':[LIST--subname+names.mha:10to15:1], ...}
     if random:
+        # create blank dict for target split:
+        return_split = {}
         for key in target_split.keys():
-            indiv_split = []
-            list_key = target_split[key]  # [LIST]
-            kf = KFold(n_splits=maxfold, shuffle=True)
-            for train_index, val_index in kf.split(range(len(list_key))):
-                # val_index -- the index of ids in list_key
-                indiv_split.append(np.array(list_key)[val_index])  # [5* [LIST]]
-            target_split[key] = indiv_split
-        return target_split  # {'EAC_XXX_XXX':[5*[LIST--subname+names.mha:10to15:1]], 'EAC_XXX_XXX':[5*[LIST--subname+names.mha:10to15:1]], ...}
+            return_split[key] = []
+        kf = KFold(n_splits=maxfold, shuffle=False)
+        key0 = str(list(target_split.keys())[0]) # --> EAC_XXX_XXX
+        length_data = len(target_split[key0])
+        # get the index for all keys/scan directions
+        for _, val_index in kf.split(range(length_data)):
+            for key in target_split.keys():
+                list_key = target_split[key]  # [LIST] of EAC_XXX_XXX
+                return_split[key].append(np.array(list_key)[val_index])  # adding [List-sublist] of EAC_XXX_XXX to EAC_XXX_XXX
+        return return_split  # {'EAC_XXX_XXX':[5*[LIST--subname+names.mha:10to15:1]], 'EAC_XXX_XXX':[5*[LIST--subname+names.mha:10to15:1]], ...}
     else:
         for key in target_split.keys():
             indiv_split = []
