@@ -23,7 +23,7 @@ def main_process(data_dir='', target_category=['EAC', 'ATL'],
                  maxfold:int=5):
     best_auc_list = []
     best_test_list = []
-    for fold_order in range(0, 2):
+    for fold_order in range(3, 5):
         save_task = target_category[0] if len(target_category)==1 else (target_category[0]+'_'+target_category[1])
         save_site = target_site[0] if len(target_site)==1 else (target_site[0]+'_'+target_site[1])
         save_father_dir = os.path.join('./models/figstest', f'{model_counter}_{save_site}_{save_task}')
@@ -105,7 +105,7 @@ def main_process(data_dir='', target_category=['EAC', 'ATL'],
 
 if __name__ == '__main__':
     task_zoo = [['CSA']]#, ['EAC'], ['EAC', 'ATL'], ['CSA', 'ATL'],]# ]
-    model_zoo = ['modelclass3d']#, 'modelclass3d', 'modelclass'] # 'convsharevit', 'vit', 'mobilevit', 'mobilenet']
+    model_zoo = ['modelclass']#, 'modelclass3d', 'modelclass'] # 'convsharevit', 'vit', 'mobilevit', 'mobilenet']
     attn_zoo = ['normal'] # True, 
     site_zoo = [ ['Wrist', 'MCP']] #['Wrist']]#,,]  #  
     for task in task_zoo:

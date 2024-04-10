@@ -128,7 +128,7 @@ def _make_divisible(v: float, divisor: int, min_value: Optional[int] = None) -> 
 
 class ViTBlock3d(nn.Module):
     def __init__(self, channel:int, kernel_size:Union[int, tuple], patch_size:Union[int, tuple], 
-                 groups:int, depth:int, mlp_dim:int, dropout:float=0., 
+                 groups:int, depth:int, mlp_dim:int, dropout:float=0.3, 
                  attn_type:Literal['normal', 'mobile', 'parr_normal', 'parr_mobile']='mobile',
                  out_channel:Union[int, None]=None):
         super().__init__()
@@ -294,17 +294,12 @@ class CSViT3d(nn.Module):
             self.fc = nn.Sequential(
                 nn.SiLU(True),
                 nn.Dropout(0.3),
-                nn.Linear(num_features+extension, 400, bias=False),
-                nn.SiLU(True),
-                nn.Dropout(0.3),
-                nn.Linear(400, num_classes, bias=False)
+                nn.Linear(num_features+extension, num_classes, bias=False)
             )
         else:
             self.fc = nn.Sequential(
                 nn.SiLU(True),
-                nn.Linear(num_features+extension, 400, bias=False),
-                nn.SiLU(True),
-                nn.Linear(400, num_classes, bias=False)
+                nn.Linear(num_features+extension, num_classes, bias=False)
             )
         
 

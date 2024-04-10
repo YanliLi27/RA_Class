@@ -37,7 +37,7 @@ def main_process(data_dir='', target_category=['EAC', 'ATL'],
         dimenson = '3D' if '3d' in model_counter else '2D'
         train_dataset, val_dataset = dataset_generator.returner(phase=phase, fold_order=fold_order, 
                                                                 mean_std=False, full_img=full_img, 
-                                                                test_balance=False, dimension=dimenson)
+                                                                test_balance=True, dimension=dimenson)
         # input: [N*5, 512, 512] + int(label)
 
         # Step. 2 get the model: (can be any nn.Module, make sure it fit your input size and output size)
@@ -96,7 +96,7 @@ def main_process(data_dir='', target_category=['EAC', 'ATL'],
         if train_dataset is not None:
             best_auc = train(model=model, dataset=train_dataset, val_dataset=val_dataset, 
                              lr=lr, num_epoch=30, batch_size=batch_size, output_name=output_name,
-                             extra_aug_flag=False, weight_decay=5e-3, optim_ada=True, save_dir=save_dir)
+                             extra_aug_flag=False, weight_decay=1e-2, optim_ada=True, save_dir=save_dir)
             corr_save(best_auc, 0, mode='acc', save_path=f'{save_dir}/record.txt')
             best_auc_list.append(best_auc)
         # Step. 4 Load the weights and predict 
@@ -139,9 +139,9 @@ def main_process(data_dir='', target_category=['EAC', 'ATL'],
 
 if __name__ == '__main__':
     task_zoo = [['CSA']]#, ['EAC'], ['EAC', 'ATL'], ['CSA', 'ATL'],]# ]
-    model_zoo = ['modelclass3d']#'csv3d']#,  #'modelclass']#, 'convsharevit', 'vit', 'mobilevit', 'mobilenet']
+    model_zoo = ['modelclass']#'csv3d']#'modelclass3d']#'csv3d']#,  #'modelclass']#, 'convsharevit', 'vit', 'mobilevit', 'mobilenet']
     attn_zoo = ['normal'] # True, 
-    site_zoo = [['Wrist']]#['Wrist', 'MCP']] #,,]  #  
+    site_zoo = [['Wrist'], ['Wrist', 'MCP']] #,,]  #  
     for task in task_zoo:
         for model_counter in model_zoo:
             for site in site_zoo:

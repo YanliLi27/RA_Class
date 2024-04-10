@@ -118,14 +118,14 @@ class ESMIRA_generator:
             transform = [transforms.Compose([
                                             # transforms.RandGaussianNoise(0.2, 0, 0.1),
                                             transforms.RandFlip(0.5, 0),
-                                            transforms.RandRotate((10), prob=0.5),
-                                            transforms.RandAffine(prob=1.0, translate_range=(20, 20)),
+                                            transforms.RandRotate((30), prob=0.7),
+                                            transforms.RandAffine(prob=1.0, translate_range=(40, 40)),
                                             # transforms.RandShiftIntensity(offsets=0.1, safe=True, prob=0.2),
                                             # transforms.RandStdShiftIntensity(factors=0.1, prob=0.2),
                                             # transforms.RandBiasField(degree=2, coeff_range=(0, 0.1), prob=0.2),
                                             # transforms.RandAdjustContrast(prob=0.5, gamma=(0.9, 1.1)),
                                             transforms.RandHistogramShift(num_control_points=10, prob=0.2),
-                                            transforms.RandZoom(prob=0.3, min_zoom=0.9, max_zoom=1.0, keep_size=True)
+                                            transforms.RandZoom(prob=0.7, min_zoom=0.8, max_zoom=1.1, keep_size=True)
                                             ]),
                         None
                             ]           
