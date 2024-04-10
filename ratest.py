@@ -23,7 +23,7 @@ def main_process(data_dir='', target_category=['EAC', 'ATL'],
                  maxfold:int=5):
     best_auc_list = []
     best_test_list = []
-    for fold_order in range(3, 5):
+    for fold_order in range(0, 5):
         save_task = target_category[0] if len(target_category)==1 else (target_category[0]+'_'+target_category[1])
         save_site = target_site[0] if len(target_site)==1 else (target_site[0]+'_'+target_site[1])
         save_father_dir = os.path.join('./models/figstest', f'{model_counter}_{save_site}_{save_task}')
@@ -76,7 +76,7 @@ def main_process(data_dir='', target_category=['EAC', 'ATL'],
         test_generator = ESMIRA_generator(data_dir, target_category, target_site, target_dirc, maxfold=maxfold)
         _, test_dataset = test_generator.returner(phase='test', fold_order=fold_order, mean_std=False, full_img=full_img, path_flag=True,
                                                   test_balance=False, dimension=dimenson)
-        test_dataloader = DataLoader(test_dataset, batch_size=2, shuffle=False, num_workers=4)
+        test_dataloader = DataLoader(test_dataset, batch_size=1, shuffle=False, num_workers=4)
         TG, TP, _, abs_path = predictplus(model, test_dataloader)
         # TG [batch, label], TP [batch, label], abs_path [batch, len(input), pathname]
         # cm = confusion_matrix(TG, TP)
