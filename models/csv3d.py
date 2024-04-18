@@ -323,7 +323,7 @@ class CSViT3d(nn.Module):
         x = self.pool(x).view(-1, x.shape[1])  # [B, g*C1,  D, L/16(32), W/16(32)] -> [B, C, 1, 1, 1] -> [B, C]
         x = self.protofeature(x)  # [B, C] --> [B, feature+extension]
         if self.mode:
-            return x[:self.num_features]
+            return x[:, :self.num_features]
         else:
             x = self.fc(x)  # [B, feature+extension] --> [B, num_classes]
             return x
