@@ -1,4 +1,4 @@
-import torch
+import torch.nn as nn
 from torch.utils.data import DataLoader
 from sklearn.metrics import classification_report, roc_auc_score, confusion_matrix
 from generators.dataset_class import ESMIRA_generator
@@ -21,7 +21,7 @@ def main_process(data_dir='', target_category=['EAC', 'ATL'],
                  target_site=['Wrist'], target_dirc=['TRA', 'COR'], phase='train',
                  model_counter='mobilevit', attn_type:Literal['normal', 'mobile', 'parr_normal', 'parr_mobile']='normal',
                  full_img:Union[bool, int]=5, batch_size:Union[int, None]=None,
-                 maxfold:int=5, test_dir='D:\\ESMIRA\\CSA_resplit\\test'):
+                 maxfold:int=5, test_dir='D:\\ESMIRA\\CSA_resplit\\test', ls:float=0.1):
     best_auc_list = []
     best_test_list = []
     dataset_generator = ESMIRA_generator(data_dir, target_category, target_site, target_dirc, maxfold=maxfold)
@@ -90,20 +90,22 @@ def main_process(data_dir='', target_category=['EAC', 'ATL'],
             lr = 0.00005
         else:
             raise ValueError('not supported model')
-
+        
+        criterion = nn.CrossEntropyLoss(label_smoothing=ls)
         # Step. 3 Train the model /OR load the weights
         output_name = output_finder(model_counter, target_category, target_site, target_dirc, fold_order)
         if train_dataset is not None:
             best_auc = train(model=model, dataset=train_dataset, val_dataset=val_dataset, 
                              lr=lr, num_epoch=30, batch_size=batch_size, output_name=output_name,
-                             extra_aug_flag=False, weight_decay=1e-2, optim_ada=True, save_dir=save_dir)
+                             extra_aug_flag=False, weight_decay=1e-2, optim_ada=True, save_dir=save_dir,
+                             criterion=criterion)
             corr_save(best_auc, 0, mode='acc', save_path=f'{save_dir}/record.txt')
             best_auc_list.append(best_auc)
         # Step. 4 Load the weights and predict 
             # best auc
         model = pretrained(model=model, output_name=output_name)
         val_dataloader = DataLoader(val_dataset, batch_size=batch_size*2, shuffle=False, num_workers=4)
-        G,P, _ = predict(model, val_dataloader)
+        G,P, _ = predict(model, val_dataloader, criterion)
         print(classification_report(G,P))
         print(roc_auc_score(G,P))
         corr_save(confusion_matrix(G,P), 0, mode='cm', save_path=f'{save_dir}/record.txt')
@@ -113,7 +115,7 @@ def main_process(data_dir='', target_category=['EAC', 'ATL'],
         _, test_dataset = test_generator.returner(phase='test', fold_order=fold_order, mean_std=False, full_img=full_img, path_flag=True,
                                                   test_balance=False, dimension=dimenson)
         test_dataloader = DataLoader(test_dataset, batch_size=1, shuffle=False, num_workers=4)
-        TG, TP, _, abs_path = predictplus(model, test_dataloader)
+        TG, TP, _, abs_path = predictplus(model, test_dataloader, criterion)
         # TG [batch, label], TP [batch, label], abs_path [batch, len(input), pathname]
         cm = confusion_matrix(TG, TP)
         auc = roc_auc_score(TG,TP)

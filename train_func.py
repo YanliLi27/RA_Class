@@ -99,7 +99,7 @@ def predictplus(model, test_loader, criterion=None, device = torch.device("cuda"
 
 def train(model, dataset, val_dataset, lr=0.0001, num_epoch:int=100, batch_size:int=10, 
           output_name:str='', extra_aug_flag:bool=False, weight_decay:float=1e-5,
-          optim_ada:bool=False, save_dir:str='',
+          optim_ada:bool=False, save_dir:str='', criterion=None,
           device=torch.device("cuda" if torch.cuda.is_available() else "cpu")):
     lr = lr
     # weight_dec = 0.0001
@@ -110,7 +110,7 @@ def train(model, dataset, val_dataset, lr=0.0001, num_epoch:int=100, batch_size:
         optimizer = torch.optim.SGD(model.parameters(), lr=lr, momentum=0.9, weight_decay=weight_decay)
         scheduler = torch.optim.lr_scheduler.ExponentialLR(optimizer, gamma=0.99)
 
-    criterion = nn.CrossEntropyLoss()
+    criterion = nn.CrossEntropyLoss() if not criterion else criterion
     batch_size = batch_size
 
     dataloader = DataLoader(dataset, batch_size=batch_size, shuffle=True, num_workers=4)
