@@ -140,19 +140,20 @@ def main_process(data_dir='', target_category=['EAC', 'ATL'],
 
 
 if __name__ == '__main__':
+    dir = 'D:\\ESMIRA\\CSA_resplit\\aimira'# 'D:\\ESMIRA\\CSA_resplit\\train'
     task_zoo = [['CSA']]#, ['EAC'], ['EAC', 'ATL'], ['CSA', 'ATL'],]# ]
     model_zoo = ['modelclass']#'csv3d']#'modelclass3d']#'csv3d']#,  #'modelclass']#, 'convsharevit', 'vit', 'mobilevit', 'mobilenet']
     attn_zoo = ['normal'] # True, 
-    site_zoo = [['Wrist'], ['Wrist', 'MCP']] #,,]  #  
+    site_zoo = [['Wrist']]#, ['Wrist', 'MCP']] #,,]  #  
     for task in task_zoo:
         for model_counter in model_zoo:
             for site in site_zoo:
                 if model_counter == 'convsharevit':
                     for attn in attn_zoo:
-                        main_process(data_dir='D:\\ESMIRA\\CSA_resplit\\train',  target_category=task, 
+                        main_process(data_dir=dir,  target_category=task, 
                                     target_site=site, target_dirc=['TRA', 'COR'], phase='train',
                                     model_counter=model_counter, attn_type=attn, full_img=7, maxfold=5)
                 else:
-                    main_process(data_dir='D:\\ESMIRA\\CSA_resplit\\train',  target_category=task, 
+                    main_process(data_dir=dir,  target_category=task, 
                                 target_site=site, target_dirc=['TRA', 'COR'], phase='train',
                                 model_counter=model_counter, attn_type='normal', full_img=7, maxfold=5)
