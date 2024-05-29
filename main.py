@@ -113,7 +113,7 @@ def main_process(data_dir='', target_category=['EAC', 'ATL'],
         logger = Record('gt', 'pred', 'path', 'cm', 'auc')
         test_generator = ESMIRA_generator(test_dir, target_category, target_site, target_dirc, maxfold=maxfold)
         _, test_dataset = test_generator.returner(phase='test', fold_order=fold_order, mean_std=False, full_img=full_img, path_flag=True,
-                                                  test_balance=False, dimension=dimenson)
+                                                  test_balance=False, dimension=dimenson, reselect=False)
         test_dataloader = DataLoader(test_dataset, batch_size=1, shuffle=False, num_workers=4)
         TG, TP, _, abs_path = predictplus(model, test_dataloader, criterion)
         # TG [batch, label], TP [batch, label], abs_path [batch, len(input), pathname]

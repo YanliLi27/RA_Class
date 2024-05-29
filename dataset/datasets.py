@@ -9,7 +9,7 @@ from typing import Union, Literal
 
 class ESMIRADataset2D(data.Dataset):
     def __init__(self, data_root:str, train_dict:dict, transform=None, mean_std:bool=False, full_img:Union[bool,int]=5,
-                 path_flag:bool=False, dimension:Literal['2D', '3D']='2D'):
+                 path_flag:bool=False, dimension:Literal['2D', '3D']='2D', reselect:bool=False):
         # train_dict {'site_dirc':[LIST(Target+Atlas): subdir\names.mha:cs:label ], ...}
         self.root = data_root  # the root of data
         self.train_dict = train_dict
@@ -24,6 +24,7 @@ class ESMIRADataset2D(data.Dataset):
             self.slices = 20
         self.path_flag = path_flag
         self.dimension = dimension
+        self.reselect = reselect
 
  
     def __len__(self):
@@ -31,7 +32,7 @@ class ESMIRADataset2D(data.Dataset):
         return len(self.train_dict[key])
 
     def __getitem__(self, idx):
-        data, label, abs_path = self._load_file(idx)
+        data, label, abs_path = self._load_file(idx) if not self.reselect else self._load_file_reselect(idx)
         data = torch.from_numpy(data)
         if self.dimension=='2D':
             data = self.transform(data) if self.transform else data
@@ -75,6 +76,53 @@ class ESMIRADataset2D(data.Dataset):
             return np.vstack(data_matrix).astype(np.float32), label, path_list  # [N*5, 512, 512], 1:int
         elif self.dimension=='3D':
             return np.asarray(data_matrix, dtype=np.float32), label, path_list  # [ch, 5, 512, 512], 1:int
+        
+
+    def _load_file_reselect(self, idx):  # item -- [5, 512, 512] * N
+        data_matrix = []
+        path_list = []
+        for key in self.train_dict.keys():
+            com_info = self.train_dict[key][idx]  # 'subdir\names.mha:cs:label'
+            path, cs, label = com_info.split(':')  # 'subdir\names.mha', 'cs', 'label'
+            five, ten = cs.split('plus')
+            fivelower, fiveupper = five.split('to')
+            tenlower, tenupper = ten.split('to')
+            if self.slices == 5:
+                lower, upper = fivelower, fiveupper
+            else:
+                lower, upper = tenlower, tenupper
+            lower, upper = int(lower), int(upper)
+            label = int(label)
+            abs_path = os.path.join(self.root, path)
+            data_mha = sitk.ReadImage(abs_path)
+            data_array = sitk.GetArrayFromImage(data_mha)
+
+
+            # for COR，using lower and upper
+            if 'CORT1f' in abs_path:
+                data_array = self._itensity_normalize(data_array[lower:upper])
+            # for TRA, using step
+            elif 'TRAT1f' in abs_path:
+                if data_array.shape[0]//2 >= self.slices:
+                    s = slice(0, 2*self.slices, 2)
+                    data_array = self._itensity_normalize(data_array[s])
+                else:
+                    data_array = self._itensity_normalize(data_array[lower:upper])
+
+            if data_array.shape != (self.slices, 512, 512):
+                if data_array.shape == (self.slices, 256, 256):
+                    data_array = resize(data_array, (self.slices, 512, 512), preserve_range=True)  # preserve_range: no normalization
+                else:
+                    raise ValueError('the shape of input:{}, the id: {}, central_slice: {}'.format(data_array.shape, path, lower))
+            data_matrix.append(data_array)
+            path_list.append(abs_path)
+        if self.dimension=='2D':
+            return np.vstack(data_matrix).astype(np.float32), label, path_list  # [N*5, 512, 512], 1:int
+        elif self.dimension=='3D':
+            return np.asarray(data_matrix, dtype=np.float32), label, path_list  # [ch, 5, 512, 512], 1:int
+
+
+        
 
 
     def _itensity_normalize(self, volume: np.array):
